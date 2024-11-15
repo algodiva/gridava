@@ -1,2 +1,2 @@
-mod hex;
 mod core;
+mod hex;

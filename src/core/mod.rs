@@ -1,7 +1,7 @@
-pub mod types;
-pub mod tile_collection;
 pub mod grid;
+pub mod tile_collection;
+pub mod types;
 
-use types::*;
-use tile_collection::*;
 use grid::*;
+use tile_collection::*;
+use types::*;
