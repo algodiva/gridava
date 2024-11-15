@@ -1,3 +1,4 @@
+pub mod coordinate;
 pub mod hex_grid;
 
-use crate::core::{types::*, grid::*, tile_collection::*};
+use crate::core::{grid::*, tile_collection::*, types::*};
