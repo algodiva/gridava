@@ -3,18 +3,19 @@ use std::convert::From;
 use std::ops::{Add, Mul, Neg, Sub};
 
 #[derive(PartialEq, Debug, Copy, Clone)]
-pub struct Cube<T: Copy> {
-    q: T,
-    r: T,
-    s: T,
+pub struct Cube<T> {
+    pub q: T,
+    pub r: T,
+    pub s: T,
 }
 
 #[derive(PartialEq, Debug, Copy, Clone)]
-pub struct Axial<T: Copy> {
-    q: T,
-    r: T,
+pub struct Axial<T> {
+    pub q: T,
+    pub r: T,
 }
 
+#[macro_export]
 macro_rules! cube {
     ($q:expr, $r:expr, $s:expr) => {
         Cube {
@@ -23,43 +24,26 @@ macro_rules! cube {
             s: $s,
         }
     };
-
-    ($q:expr, $r:expr) => {
-        Cube { q: $q, r: $r, s: 0 }
-    };
-
-    ($q:expr) => {
-        Cube { q: $q, r: 0, s: 0 }
-    };
 }
+pub use cube;
 
+#[macro_export]
 macro_rules! axial {
     ($q:expr, $r:expr) => {
         Axial { q: $q, r: $r }
     };
-
-    ($q:expr) => {
-        Axial { q: $q, r: 0 }
-    };
 }
+pub use axial;
 
-const NEIGHBORS_AXIAL: [Axial<i32>; 6] = [
-    axial!(1, 0),
-    axial!(1, -1),
-    axial!(0, -1),
-    axial!(-1, 0),
-    axial!(-1, 1),
-    axial!(0, 1),
-];
-
-const NEIGHBORS_CUBE: [Cube<i32>; 6] = [
-    cube!(1, 0, -1),
-    cube!(1, -1, 0),
-    cube!(0, -1, 1),
-    cube!(-1, 0, 1),
-    cube!(-1, 1, 0),
-    cube!(0, 1, -1),
-];
+//Positive Q denotes forward vector
+pub enum HexDirection {
+    Front,
+    FrontRight,
+    BackRight,
+    Back,
+    BackLeft,
+    FrontLeft,
+}
 
 pub fn compute_s<T>(from: (T, T)) -> T
 where
@@ -83,7 +67,7 @@ where
 
 // Cube Arithmetic
 
-impl<T: Copy + Add<Output = T>> Add for Cube<T> {
+impl<T: Add<Output = T>> Add for Cube<T> {
     type Output = Cube<T>;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -91,7 +75,7 @@ impl<T: Copy + Add<Output = T>> Add for Cube<T> {
     }
 }
 
-impl<T: Copy + Sub<Output = T>> Sub for Cube<T> {
+impl<T: Sub<Output = T>> Sub for Cube<T> {
     type Output = Cube<T>;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -109,7 +93,7 @@ impl<T: Copy + Mul<Output = T>> Mul<T> for Cube<T> {
 
 // Axial conversion
 
-impl<T: Copy> From<Cube<T>> for Axial<T> {
+impl<T> From<Cube<T>> for Axial<T> {
     fn from(value: Cube<T>) -> Self {
         axial!(value.q, value.r)
     }
@@ -117,7 +101,7 @@ impl<T: Copy> From<Cube<T>> for Axial<T> {
 
 // Axial Arithmetic
 
-impl<T: Copy + Add<Output = T>> Add for Axial<T> {
+impl<T: Add<Output = T>> Add for Axial<T> {
     type Output = Axial<T>;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -125,7 +109,7 @@ impl<T: Copy + Add<Output = T>> Add for Axial<T> {
     }
 }
 
-impl<T: Copy + Sub<Output = T>> Sub for Axial<T> {
+impl<T: Sub<Output = T>> Sub for Axial<T> {
     type Output = Axial<T>;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -144,37 +128,36 @@ impl<T: Copy + Mul<Output = T>> Mul<T> for Axial<T> {
 #[cfg(test)]
 pub mod tests {
     #[test]
+    fn identity_structs() {
+        use super::*;
+        use num::{One, Zero};
+
+        let axial = axial!(-i64::one(), i64::zero());
+        assert_eq!(axial.q, -1);
+        assert_eq!(axial.r, 0);
+
+        let cube = cube!(i32::one(), -i32::one(), i32::zero());
+        assert_eq!(cube.q, 1);
+        assert_eq!(cube.r, -1);
+        assert_eq!(cube.s, 0);
+
+    }
+
+    #[test]
     fn coordinate_macros() {
         use super::*;
-        let fully_defined_axial = axial!(32, -45);
-        let fully_defined_cube = cube!(32, -45, 16);
+        let axial = axial!(32, -45);
+        let cube = cube!(32, -45, 16);
 
-        assert_eq!(fully_defined_axial, Axial { q: 32, r: -45 });
+        assert_eq!(axial, Axial { q: 32, r: -45 });
         assert_eq!(
-            fully_defined_cube,
+            cube,
             Cube {
                 q: 32,
                 r: -45,
                 s: 16
             }
         );
-
-        let partial_defined_axial = axial!(101);
-        let partial_defined_cube = cube!(14, -200);
-
-        assert_eq!(partial_defined_axial, Axial { q: 101, r: 0 });
-        assert_eq!(
-            partial_defined_cube,
-            Cube {
-                q: 14,
-                r: -200,
-                s: 0
-            }
-        );
-
-        let partial_defined_cube = cube!(38);
-
-        assert_eq!(partial_defined_cube, Cube { q: 38, r: 0, s: 0 });
     }
 
     #[test]
