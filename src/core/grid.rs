@@ -1,5 +1,5 @@
 use super::*;
-use std::error::Error;
+use std::{collections::HashMap, error::Error};
 
 #[derive(Debug)]
 pub enum GridError {
@@ -17,6 +17,7 @@ impl std::fmt::Display for GridError {
 
 impl Error for GridError {}
 
-pub trait Grid<TileType: Tile> {
-    fn get_collection<T: TileCollection<TileType>>(&self) -> Result<T, GridError>;
+pub trait Grid<TileType, Coordinate> {
+    fn get_collection(&self) -> &HashMap<Coordinate, TileType>;
+    fn get_collection_mut(&mut self) -> &mut HashMap<Coordinate, TileType>;
 }
