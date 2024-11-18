@@ -49,6 +49,7 @@ impl Sub for Axial {
     }
 }
 
+// TODO: determine if we wish to return floats to handle potential truncation
 impl Div<i32> for Axial {
     type Output = Axial;
 
@@ -66,5 +67,45 @@ where
 
     fn mul(self, rhs: T) -> Self::Output {
         axial!(self.q * rhs, self.r * rhs)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn axial_macro() {
+        assert_eq!(Axial{ q: 4, r: 3 }, axial!(4, 3));
+        assert_ne!(Axial{ q: 2, r: -1 }, axial!(1, -1));
+        assert_ne!(Axial{ q: 2, r: -1 }, axial!(2, -2));
+    }
+
+    #[test]
+    fn compute_s() {
+        assert_eq!(axial!(4, 3).compute_s(), -7);
+        assert_eq!(axial!(-3, -2).compute_s(), 5);
+    }
+
+    #[test]
+    fn add() {
+        assert!(axial!(4, 2) + axial!(1, 3) == axial!(5, 5));
+    }
+
+    #[test]
+    fn sub() {
+        assert!(axial!(4, 2) - axial!(1, 3) == axial!(3, -1));
+    }
+
+    #[test]
+    fn mult() {
+        assert!(axial!(4, 2) * 2 == axial!(8, 4));
+        assert!(axial!(4, 2) * 0 == axial!(0, 0));
+    }
+
+    #[test]
+    fn div() {
+        assert!(axial!(4, 2) / 2 == axial!(2, 1));
+        assert!(axial!(41, 23) / 6 == axial!(6, 3));
     }
 }
