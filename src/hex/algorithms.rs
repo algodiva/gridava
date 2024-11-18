@@ -102,13 +102,13 @@ mod tests {
 
     #[test]
     fn lerp() {
-        assert_eq!(axial!(-1, -1).lerp(axial!(9, 19), -0.25), axial!(-4, -6));
+        assert_eq!(axial!(-1, -1).lerp(axial!(9, 19), -0.25), axial!(-3, -6));
         assert_eq!(axial!(-1, -1).lerp(axial!(9, 19), 0.0), axial!(-1, -1));
-        assert_eq!(axial!(-1, -1).lerp(axial!(9, 19), 0.25), axial!(2, 4));
+        assert_eq!(axial!(-1, -1).lerp(axial!(9, 19), 0.25), axial!(1, 4));
         assert_eq!(axial!(-1, -1).lerp(axial!(9, 19), 0.5), axial!(4, 9));
-        assert_eq!(axial!(-1, -1).lerp(axial!(9, 19), 0.75), axial!(7, 14));
+        assert_eq!(axial!(-1, -1).lerp(axial!(9, 19), 0.75), axial!(6, 14));
         assert_eq!(axial!(-1, -1).lerp(axial!(9, 19), 1.0), axial!(9, 19));
-        assert_eq!(axial!(-1, -1).lerp(axial!(9, 19), 1.25), axial!(12, 24));
+        assert_eq!(axial!(-1, -1).lerp(axial!(9, 19), 1.25), axial!(11, 24));
     }
 
     #[test]
