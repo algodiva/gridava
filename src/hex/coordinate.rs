@@ -37,6 +37,14 @@ impl Axial {
     pub fn compute_s(&self) -> i32 {
         -self.q - self.r
     }
+
+    pub fn swizzle_l(&self) -> Self {
+        axial!(self.r, self.compute_s())
+    }
+
+    pub fn swizzle_r(&self) -> Self {
+        axial!(self.compute_s(), self.q)
+    }
 }
 
 impl Add for Axial {
