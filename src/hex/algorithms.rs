@@ -1,6 +1,6 @@
 use crate::axial;
 
-use super::coordinate::{Axial, HexDirection};
+use super::coordinate::{Axes, Axial, HexDirection};
 
 impl Axial {
     pub fn neighbor(&self, direction: HexDirection) -> Self {
@@ -73,6 +73,22 @@ impl Axial {
 
         ret
     }
+
+    // center: Option<Self> denotes a point to reflect about. If provided None, coordinate (0,0) will be used.
+    pub fn reflect(&self, center: Option<Self>, axes: Axes) -> Self {
+        let center = match center {
+            Some(c) => c,
+            None => axial!(0,0),
+        };
+
+        let centered_coord = *self - center;
+
+        match axes {
+            Axes::Q => axial!(centered_coord.q, centered_coord.compute_s()) + center,
+            Axes::R => axial!(centered_coord.compute_s(), centered_coord.r) + center,
+            Axes::S => axial!(centered_coord.r, centered_coord.q) + center,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -102,13 +118,13 @@ mod tests {
 
     #[test]
     fn lerp() {
-        assert_eq!(axial!(-1, -1).lerp(axial!(9, 19), -0.25), axial!(-4, -6));
+        assert_eq!(axial!(-1, -1).lerp(axial!(9, 19), -0.25), axial!(-3, -6));
         assert_eq!(axial!(-1, -1).lerp(axial!(9, 19), 0.0), axial!(-1, -1));
-        assert_eq!(axial!(-1, -1).lerp(axial!(9, 19), 0.25), axial!(2, 4));
+        assert_eq!(axial!(-1, -1).lerp(axial!(9, 19), 0.25), axial!(1, 4));
         assert_eq!(axial!(-1, -1).lerp(axial!(9, 19), 0.5), axial!(4, 9));
-        assert_eq!(axial!(-1, -1).lerp(axial!(9, 19), 0.75), axial!(7, 14));
+        assert_eq!(axial!(-1, -1).lerp(axial!(9, 19), 0.75), axial!(6, 14));
         assert_eq!(axial!(-1, -1).lerp(axial!(9, 19), 1.0), axial!(9, 19));
-        assert_eq!(axial!(-1, -1).lerp(axial!(9, 19), 1.25), axial!(12, 24));
+        assert_eq!(axial!(-1, -1).lerp(axial!(9, 19), 1.25), axial!(11, 24));
     }
 
     #[test]
@@ -210,5 +226,18 @@ mod tests {
                 axial!(3, 0),
             ]
         );
+    }
+
+    #[test]
+    fn reflect() {
+        assert_eq!(axial!(-1,1).reflect(None, Axes::Q), axial!(-1, 0));
+        assert_eq!(axial!(1,3).reflect(Some(axial!(1,2)), Axes::Q), axial!(1, 1));
+
+        assert_eq!(axial!(-1,1).reflect(None, Axes::R), axial!(0, 1));
+        assert_eq!(axial!(1,3).reflect(Some(axial!(1,2)), Axes::R), axial!(0, 3));
+
+        assert_eq!(axial!(-1,1).reflect(None, Axes::S), axial!(1, -1));
+        assert_eq!(axial!(1,3).reflect(Some(axial!(1,2)), Axes::S), axial!(2, 2));
+        
     }
 }

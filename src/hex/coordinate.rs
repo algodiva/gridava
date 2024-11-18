@@ -27,9 +27,23 @@ pub enum HexDirection {
     FrontLeft,
 }
 
+pub enum Axes {
+    Q,
+    R,
+    S,
+}
+
 impl Axial {
     pub fn compute_s(&self) -> i32 {
         -self.q - self.r
+    }
+
+    pub fn swizzle_l(&self) -> Self {
+        axial!(self.r, self.compute_s())
+    }
+
+    pub fn swizzle_r(&self) -> Self {
+        axial!(self.compute_s(), self.q)
     }
 }
 
@@ -97,6 +111,7 @@ mod tests {
         assert!(axial!(4, 2) - axial!(1, 3) == axial!(3, -1));
     }
 
+    #[allow(clippy::erasing_op)]
     #[test]
     fn mult() {
         assert!(axial!(4, 2) * 2 == axial!(8, 4));
