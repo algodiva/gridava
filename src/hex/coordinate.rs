@@ -97,6 +97,7 @@ mod tests {
         assert!(axial!(4, 2) - axial!(1, 3) == axial!(3, -1));
     }
 
+    #[allow(clippy::erasing_op)]
     #[test]
     fn mult() {
         assert!(axial!(4, 2) * 2 == axial!(8, 4));
