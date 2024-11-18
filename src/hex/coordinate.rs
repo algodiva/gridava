@@ -76,9 +76,9 @@ mod tests {
 
     #[test]
     fn axial_macro() {
-        assert_eq!(Axial{ q: 4, r: 3 }, axial!(4, 3));
-        assert_ne!(Axial{ q: 2, r: -1 }, axial!(1, -1));
-        assert_ne!(Axial{ q: 2, r: -1 }, axial!(2, -2));
+        assert_eq!(Axial { q: 4, r: 3 }, axial!(4, 3));
+        assert_ne!(Axial { q: 2, r: -1 }, axial!(1, -1));
+        assert_ne!(Axial { q: 2, r: -1 }, axial!(2, -2));
     }
 
     #[test]

@@ -86,7 +86,10 @@ mod tests {
         assert_eq!(axial!(6, 4).neighbor(HexDirection::BackRight), axial!(5, 5));
         assert_eq!(axial!(6, 4).neighbor(HexDirection::Front), axial!(7, 4));
         assert_eq!(axial!(6, 4).neighbor(HexDirection::FrontLeft), axial!(7, 3));
-        assert_eq!(axial!(6, 4).neighbor(HexDirection::FrontRight), axial!(6, 5));
+        assert_eq!(
+            axial!(6, 4).neighbor(HexDirection::FrontRight),
+            axial!(6, 5)
+        );
     }
 
     #[test]
@@ -110,39 +113,102 @@ mod tests {
 
     #[test]
     fn line() {
-        assert_eq!(axial!(-1, -1).line(axial!(-1, 1)),
-            vec![ axial!(-1, -1), axial!(-1, 0), axial!(-1, 1) ]);
-        assert_eq!(axial!(-1, -1).line(axial!(1, -1)),
-            vec![ axial!(-1, -1), axial!(0, -1), axial!(1, -1) ]);
-        assert_eq!(axial!(-1, -1).line(axial!(0, 1)),
-            vec![ axial!(-1, -1), axial!(-1, 0), axial!(0, 0), axial!(0, 1) ]);
-        assert_eq!(axial!(-1, -1).line(axial!(1, 0)),
-            vec![ axial!(-1, -1), axial!(0, -1), axial!(0, 0), axial!(1, 0) ]);
-        assert_eq!(axial!(-1, -1).line(axial!(1, 1)),
-            vec![ axial!(-1, -1), axial!(0, -1), axial!(0, 0), axial!(0, 1), axial!(1, 1) ]);
-        assert_eq!(axial!(-1, 1).line(axial!(1, -1)),
-            vec![ axial!(-1, 1), axial!(0, 0), axial!(1, -1) ]);
-        assert_eq!(axial!(1, 3).line(axial!(3, 1)),
-            vec![ axial!(1, 3), axial!(2, 2), axial!(3, 1) ]);
-        assert_eq!(axial!(0,0).line(axial!(1,1)),
-            vec![ axial!(0, 0), axial!(0, 1), axial!(1, 1) ]);
+        assert_eq!(
+            axial!(-1, -1).line(axial!(-1, 1)),
+            vec![axial!(-1, -1), axial!(-1, 0), axial!(-1, 1)]
+        );
+        assert_eq!(
+            axial!(-1, -1).line(axial!(1, -1)),
+            vec![axial!(-1, -1), axial!(0, -1), axial!(1, -1)]
+        );
+        assert_eq!(
+            axial!(-1, -1).line(axial!(0, 1)),
+            vec![axial!(-1, -1), axial!(-1, 0), axial!(0, 0), axial!(0, 1)]
+        );
+        assert_eq!(
+            axial!(-1, -1).line(axial!(1, 0)),
+            vec![axial!(-1, -1), axial!(0, -1), axial!(0, 0), axial!(1, 0)]
+        );
+        assert_eq!(
+            axial!(-1, -1).line(axial!(1, 1)),
+            vec![
+                axial!(-1, -1),
+                axial!(0, -1),
+                axial!(0, 0),
+                axial!(0, 1),
+                axial!(1, 1)
+            ]
+        );
+        assert_eq!(
+            axial!(-1, 1).line(axial!(1, -1)),
+            vec![axial!(-1, 1), axial!(0, 0), axial!(1, -1)]
+        );
+        assert_eq!(
+            axial!(1, 3).line(axial!(3, 1)),
+            vec![axial!(1, 3), axial!(2, 2), axial!(3, 1)]
+        );
+        assert_eq!(
+            axial!(0, 0).line(axial!(1, 1)),
+            vec![axial!(0, 0), axial!(0, 1), axial!(1, 1)]
+        );
     }
 
     #[test]
     fn range() {
-        assert_eq!(axial!(0, 0).range(0),
-            vec![ axial!(0, 0) ]);
-        assert_eq!(axial!(0, 0).range(1),
-            vec![ axial!(-1, 0), axial!(-1, 1), axial!(0, -1), axial!(0, 0), axial!(0, 1), axial!(1, -1), axial!(1, 0) ]);
-        assert_eq!(axial!(0, 0).range(3),
+        assert_eq!(axial!(0, 0).range(0), vec![axial!(0, 0)]);
+        assert_eq!(
+            axial!(0, 0).range(1),
             vec![
-                axial!(-3, 0), axial!(-3, 1), axial!(-3, 2), axial!(-3, 3),
-                axial!(-2, -1), axial!(-2, 0), axial!(-2, 1), axial!(-2, 2), axial!(-2, 3),
-                axial!(-1, -2), axial!(-1, -1), axial!(-1, 0), axial!(-1, 1), axial!(-1, 2), axial!(-1, 3),
-                axial!(0, -3), axial!(0, -2), axial!(0, -1), axial!(0, 0), axial!(0, 1), axial!(0, 2), axial!(0, 3),
-                axial!(1, -3), axial!(1, -2), axial!(1, -1), axial!(1, 0), axial!(1, 1), axial!(1, 2),
-                axial!(2, -3), axial!(2, -2), axial!(2, -1), axial!(2, 0), axial!(2, 1),
-                axial!(3, -3), axial!(3, -2), axial!(3, -1), axial!(3, 0),
-            ]);
+                axial!(-1, 0),
+                axial!(-1, 1),
+                axial!(0, -1),
+                axial!(0, 0),
+                axial!(0, 1),
+                axial!(1, -1),
+                axial!(1, 0)
+            ]
+        );
+        assert_eq!(
+            axial!(0, 0).range(3),
+            vec![
+                axial!(-3, 0),
+                axial!(-3, 1),
+                axial!(-3, 2),
+                axial!(-3, 3),
+                axial!(-2, -1),
+                axial!(-2, 0),
+                axial!(-2, 1),
+                axial!(-2, 2),
+                axial!(-2, 3),
+                axial!(-1, -2),
+                axial!(-1, -1),
+                axial!(-1, 0),
+                axial!(-1, 1),
+                axial!(-1, 2),
+                axial!(-1, 3),
+                axial!(0, -3),
+                axial!(0, -2),
+                axial!(0, -1),
+                axial!(0, 0),
+                axial!(0, 1),
+                axial!(0, 2),
+                axial!(0, 3),
+                axial!(1, -3),
+                axial!(1, -2),
+                axial!(1, -1),
+                axial!(1, 0),
+                axial!(1, 1),
+                axial!(1, 2),
+                axial!(2, -3),
+                axial!(2, -2),
+                axial!(2, -1),
+                axial!(2, 0),
+                axial!(2, 1),
+                axial!(3, -3),
+                axial!(3, -2),
+                axial!(3, -1),
+                axial!(3, 0),
+            ]
+        );
     }
 }
