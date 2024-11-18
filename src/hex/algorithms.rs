@@ -230,7 +230,14 @@ mod tests {
 
     #[test]
     fn reflect() {
-        assert_eq!(axial!(1,1).reflect(None, Axes::Q), axial!(1, -2));
-        assert_eq!(axial!(1,1).reflect(Some(axial!(1,2)), Axes::Q), axial!(1, 3));
+        assert_eq!(axial!(-1,1).reflect(None, Axes::Q), axial!(-1, 0));
+        assert_eq!(axial!(1,3).reflect(Some(axial!(1,2)), Axes::Q), axial!(1, 1));
+
+        assert_eq!(axial!(-1,1).reflect(None, Axes::R), axial!(0, 1));
+        assert_eq!(axial!(1,3).reflect(Some(axial!(1,2)), Axes::R), axial!(0, 3));
+
+        assert_eq!(axial!(-1,1).reflect(None, Axes::S), axial!(1, -1));
+        assert_eq!(axial!(1,3).reflect(Some(axial!(1,2)), Axes::S), axial!(2, 2));
+        
     }
 }
