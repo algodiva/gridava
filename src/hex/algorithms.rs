@@ -1,6 +1,6 @@
 use crate::axial;
 
-use super::coordinate::{Axial, HexDirection};
+use super::coordinate::{Axes, Axial, HexDirection};
 
 impl Axial {
     pub fn neighbor(&self, direction: HexDirection) -> Self {
@@ -72,6 +72,22 @@ impl Axial {
         }
 
         ret
+    }
+
+    // center: Option<Self> denotes a point to reflect about. If provided None, coordinate (0,0) will be used.
+    pub fn reflect(&self, center: Option<Self>, axes: Axes) -> Self {
+        let center = match center {
+            Some(c) => c,
+            None => axial!(0,0),
+        };
+
+        let centered_coord = *self - center;
+
+        match axes {
+            Axes::Q => axial!(centered_coord.q, centered_coord.compute_s()) + center,
+            Axes::R => axial!(centered_coord.compute_s(), centered_coord.r) + center,
+            Axes::S => axial!(centered_coord.r, centered_coord.q) + center,
+        }
     }
 }
 
@@ -210,5 +226,11 @@ mod tests {
                 axial!(3, 0),
             ]
         );
+    }
+
+    #[test]
+    fn reflect() {
+        assert_eq!(axial!(1,1).reflect(None, Axes::Q), axial!(1, -2));
+        assert_eq!(axial!(1,1).reflect(Some(axial!(1,2)), Axes::Q), axial!(1, 3));
     }
 }

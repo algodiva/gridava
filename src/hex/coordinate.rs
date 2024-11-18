@@ -27,6 +27,12 @@ pub enum HexDirection {
     FrontLeft,
 }
 
+pub enum Axes {
+    Q,
+    R,
+    S,
+}
+
 impl Axial {
     pub fn compute_s(&self) -> i32 {
         -self.q - self.r
