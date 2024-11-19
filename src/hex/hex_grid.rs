@@ -19,6 +19,16 @@ pub struct HexGrid<TileType> {
     pub collection: HashMap<Axial, TileType>,
 }
 
+impl<TileType> Default for HexGrid<TileType> {
+    fn default() -> Self {
+        Self {
+            orientation: HexOrientation::PointyTop,
+            hex_size: 32.0,
+            collection: Default::default(),
+        }
+    }
+}
+
 impl<TileType> HexGrid<TileType> {
     // uses point-top. Need to get conversion for flat top
     pub fn world_to_hex(&self, worldspace: (f64, f64)) -> Axial {
