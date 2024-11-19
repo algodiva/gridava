@@ -51,3 +51,83 @@ impl<TileType> HexGrid<TileType> {
         (x, y)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::axial;
+    use assert_float_eq::assert_f64_near;
+
+    #[test]
+    fn world_to_hex() {
+        let pt10 = HexGrid::<i32> {
+            orientation: HexOrientation::PointyTop,
+            hex_size: 10.0,
+            collection: Default::default(),
+        };
+        let pt32 = HexGrid::<i32> {
+            orientation: HexOrientation::PointyTop,
+            hex_size: 32.0,
+            collection: Default::default(),
+        };
+
+        assert_eq!(pt10.world_to_hex((0.0, 0.0)), axial!(0, 0));
+        assert_eq!(pt10.world_to_hex((SQRT_3 * 112.0, 0.0)), axial!(11, 0));
+        assert_eq!(pt10.world_to_hex((SQRT_3 * 56.0, 480.0)), axial!(-10, 32));
+        assert_eq!(pt10.world_to_hex((0.0, 640.0)), axial!(-21, 42));
+        assert_eq!(pt10.world_to_hex((SQRT_3 * 144.0, 640.0)), axial!(-7, 43));
+
+        assert_eq!(pt32.world_to_hex((0.0, 0.0)), axial!(0, 0));
+        assert_eq!(pt32.world_to_hex((SQRT_3 * 112.0, 0.0)), axial!(4, 0));
+        assert_eq!(pt32.world_to_hex((SQRT_3 * 56.0, 480.0)), axial!(-3, 10));
+        assert_eq!(pt32.world_to_hex((0.0, 640.0)), axial!(-6, 13));
+        assert_eq!(pt32.world_to_hex((SQRT_3 * 144.0, 640.0)), axial!(-2, 13));
+    }
+
+    macro_rules! assert_f64_tuples_near {
+        ($tup:expr, $cmp:expr) => {
+            let (tup, cmp) = ($tup, $cmp);
+            assert_f64_near!(tup.0, cmp.0, 4);
+            assert_f64_near!(tup.1, cmp.1, 4);
+        };
+    }
+
+    #[test]
+    fn hex_to_world() {
+        let pt10 = HexGrid::<i32> {
+            orientation: HexOrientation::PointyTop,
+            hex_size: 10.0,
+            collection: Default::default(),
+        };
+        let pt40 = HexGrid::<i32> {
+            orientation: HexOrientation::PointyTop,
+            hex_size: 40.0,
+            collection: Default::default(),
+        };
+
+        assert_f64_tuples_near!(pt10.hex_to_world(axial!(0, 0)), (0.0, 0.0));
+        assert_f64_tuples_near!(pt10.hex_to_world(axial!(15, 0)), (SQRT_3 * 150.0, 0.0));
+        assert_f64_tuples_near!(pt10.hex_to_world(axial!(10, 10)), (SQRT_3 * 150.0, 150.0));
+        assert_f64_tuples_near!(pt10.hex_to_world(axial!(0, 15)), (SQRT_3 * 75.0, 225.0));
+        assert_f64_tuples_near!(pt10.hex_to_world(axial!(-10, 10)), (SQRT_3 * -50.0, 150.0));
+        assert_f64_tuples_near!(pt10.hex_to_world(axial!(-15, 0)), (SQRT_3 * -150.0, 0.0));
+        assert_f64_tuples_near!(
+            pt10.hex_to_world(axial!(-10, -10)),
+            (SQRT_3 * -150.0, -150.0)
+        );
+        assert_f64_tuples_near!(pt10.hex_to_world(axial!(0, -15)), (SQRT_3 * -75.0, -225.0));
+
+        assert_f64_tuples_near!(pt40.hex_to_world(axial!(0, 0)), (0.0, 0.0));
+        assert_f64_tuples_near!(pt40.hex_to_world(axial!(15, 0)), (SQRT_3 * 600.0, 0.0));
+        assert_f64_tuples_near!(pt40.hex_to_world(axial!(10, 10)), (SQRT_3 * 600.0, 600.0));
+        assert_f64_tuples_near!(pt40.hex_to_world(axial!(0, 15)), (SQRT_3 * 300.0, 900.0));
+        assert_f64_tuples_near!(pt40.hex_to_world(axial!(-10, 10)), (SQRT_3 * -200.0, 600.0));
+        assert_f64_tuples_near!(pt40.hex_to_world(axial!(-15, 0)), (SQRT_3 * -600.0, 0.0));
+        assert_f64_tuples_near!(
+            pt40.hex_to_world(axial!(-10, -10)),
+            (SQRT_3 * -600.0, -600.0)
+        );
+        assert_f64_tuples_near!(pt40.hex_to_world(axial!(0, -15)), (SQRT_3 * -300.0, -900.0));
+    }
+}

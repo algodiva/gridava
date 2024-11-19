@@ -1,0 +1,3 @@
+- Automated on merge and/or checkin tasks, eg:
+ - cargo fmt
+ - run tests
