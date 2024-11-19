@@ -16,8 +16,3 @@ impl std::fmt::Display for GridError {
 }
 
 impl Error for GridError {}
-
-pub trait Grid<TileType, Coordinate> {
-    fn get_collection(&self) -> &HashMap<Coordinate, TileType>;
-    fn get_collection_mut(&mut self) -> &mut HashMap<Coordinate, TileType>;
-}
