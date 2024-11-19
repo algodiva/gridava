@@ -1,3 +1,5 @@
+use std::ops::Rem;
+
 use crate::axial;
 
 use super::coordinate::{Axes, Axial, HexDirection};
@@ -87,6 +89,36 @@ impl Axial {
             Axes::Q => axial!(centered_coord.q, centered_coord.compute_s()) + center,
             Axes::R => axial!(centered_coord.compute_s(), centered_coord.r) + center,
             Axes::S => axial!(centered_coord.r, centered_coord.q) + center,
+        }
+    }
+
+    pub(self) fn rotate_recursive(&self, iter: usize, cw: bool) -> Self {
+        if iter == 0 {
+            *self
+        } else {
+            let input = match cw {
+                true => -self.swizzle_l(),
+                false => -self.swizzle_r(),
+            };
+            input.rotate_recursive(iter - 1, cw)
+        }
+    }
+
+    // Positive dir means CW, negative CCW, and magnitude denotes how many 60 degree rotations in that direction.
+    pub fn rotate(&self, center: Option<Self>, rot_dir: i32) -> Self {
+        let center = match center {
+            Some(c) => c,
+            None => axial!(0, 0),
+        };
+
+        let centered_coord = *self - center;
+
+        if rot_dir < 0 {
+            // negative, CCW
+            centered_coord.rotate_recursive(rot_dir.rem(6).unsigned_abs() as usize, false) + center
+        } else {
+            // positive, CW
+            centered_coord.rotate_recursive(rot_dir.rem(6).unsigned_abs() as usize, true) + center
         }
     }
 }
@@ -247,5 +279,26 @@ mod tests {
             axial!(1, 3).reflect(Some(axial!(1, 2)), Axes::S),
             axial!(2, 2)
         );
+    }
+
+    #[test]
+    fn rotate() {
+        // CW
+        assert_eq!(axial!(-1, 1).rotate(None, 1), axial!(-1, 0));
+        assert_eq!(axial!(-1, 1).rotate(None, 2), axial!(0, -1));
+        assert_eq!(axial!(-1, 1).rotate(None, 3), axial!(1, -1));
+        assert_eq!(axial!(-1, 1).rotate(None, 7), axial!(-1, 0));
+        assert_eq!(axial!(-1, 1).rotate(None, 8), axial!(0, -1));
+        assert_eq!(axial!(-1, 1).rotate(None, 9), axial!(1, -1));
+
+        // CCW
+        assert_eq!(axial!(-1, 1).rotate(None, -1), axial!(0, 1));
+        assert_eq!(axial!(-1, 1).rotate(None, -2), axial!(1, 0));
+        assert_eq!(axial!(-1, 1).rotate(None, -3), axial!(1, -1));
+
+        // About non (0, 0) center
+        assert_eq!(axial!(0, 0).rotate(Some(axial!(1, 1)), 1), axial!(2, -1));
+        assert_eq!(axial!(0, 0).rotate(Some(axial!(1, 1)), 2), axial!(3, 0));
+        assert_eq!(axial!(0, 0).rotate(Some(axial!(1, 1)), 3), axial!(2, 2));
     }
 }

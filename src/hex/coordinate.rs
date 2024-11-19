@@ -1,6 +1,6 @@
 use std::{
     cmp::PartialEq,
-    ops::{Add, Div, Mul, Sub},
+    ops::{Add, Div, Mul, Neg, Sub},
 };
 
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -81,6 +81,14 @@ where
 
     fn mul(self, rhs: T) -> Self::Output {
         axial!(self.q * rhs, self.r * rhs)
+    }
+}
+
+impl Neg for Axial {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        axial!(-self.q, -self.r)
     }
 }
 
