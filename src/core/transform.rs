@@ -13,6 +13,35 @@ pub struct Transform<T: Copy + AddAssign + Transformable<T>> {
     pub scale: i32,    // Can this be a coordinate or even a tuple of floats and not a i32?
 }
 
+#[macro_export]
+macro_rules! transform {
+    ($t:expr) => {
+        Transform {
+            translation: $t,
+            rotation: 0,
+            scale: 1,
+        }
+    };
+
+    ($t:expr, $r:expr) => {
+        Transform {
+            translation: $t,
+            rotation: $r,
+            scale: 1,
+        }
+    };
+
+    // When scale is working we can uncomment this.
+    // ($t:expr, $r:expr, $s:expr) => {
+    //     Transform {
+    //         translation: $t,
+    //         rotation: $r,
+    //         scale: $s,
+    //     }
+    // };
+}
+pub use transform;
+
 // Default trait implementation.
 // Uses default traits of internals except for scale, scale is defaulted to 1.
 impl<T: Copy + AddAssign + Transformable<T> + Default> Default for Transform<T> {
