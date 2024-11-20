@@ -3,6 +3,8 @@ use std::{
     ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign},
 };
 
+use crate::core::transform::Transformable;
+
 #[derive(PartialEq, Debug, Copy, Clone, Default)]
 pub struct Axial {
     pub q: i32,
@@ -44,6 +46,12 @@ impl Axial {
 
     pub fn swizzle_r(&self) -> Self {
         axial!(self.compute_s(), self.q)
+    }
+}
+
+impl Transformable<Axial> for Axial {
+    fn apply_rotation(&self, rotation: i32) -> Axial {
+        self.rotate(None, rotation)
     }
 }
 
