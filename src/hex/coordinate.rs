@@ -1,9 +1,11 @@
 use std::{
     cmp::PartialEq,
-    ops::{Add, Div, Mul, Neg, Sub},
+    ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign},
 };
 
-#[derive(PartialEq, Debug, Copy, Clone)]
+use crate::core::transform::Transformable;
+
+#[derive(PartialEq, Debug, Copy, Clone, Default)]
 pub struct Axial {
     pub q: i32,
     pub r: i32,
@@ -47,6 +49,12 @@ impl Axial {
     }
 }
 
+impl Transformable<Axial> for Axial {
+    fn apply_rotation(&self, rotation: i32) -> Axial {
+        self.rotate(None, rotation)
+    }
+}
+
 impl Add for Axial {
     type Output = Axial;
 
@@ -55,11 +63,23 @@ impl Add for Axial {
     }
 }
 
+impl AddAssign for Axial {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs;
+    }
+}
+
 impl Sub for Axial {
     type Output = Axial;
 
     fn sub(self, rhs: Self) -> Self::Output {
         axial!(self.q - rhs.q, self.r - rhs.r)
+    }
+}
+
+impl SubAssign for Axial {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = *self - rhs;
     }
 }
 
