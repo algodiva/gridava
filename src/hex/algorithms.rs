@@ -5,15 +5,12 @@ use crate::axial;
 use super::coordinate::{Axes, Axial, HexDirection};
 
 impl Axial {
+    pub fn make_vector(&self, distance: i32, rot_dir: i32) -> Self {
+        *self + HexDirection::from(rot_dir).to_movement_vector() * distance
+    }
+
     pub fn neighbor(&self, direction: HexDirection) -> Self {
-        match direction {
-            HexDirection::Front => axial!(self.q + 1, self.r),
-            HexDirection::FrontRight => axial!(self.q, self.r + 1),
-            HexDirection::BackRight => axial!(self.q - 1, self.r + 1),
-            HexDirection::Back => axial!(self.q - 1, self.r),
-            HexDirection::BackLeft => axial!(self.q, self.r - 1),
-            HexDirection::FrontLeft => axial!(self.q + 1, self.r - 1),
-        }
+        self.make_vector(1, direction.into())
     }
 
     pub fn distance(&self, b: Self) -> i32 {

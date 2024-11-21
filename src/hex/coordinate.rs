@@ -11,6 +11,12 @@ pub struct Axial {
     pub r: i32,
 }
 
+impl From<Axial> for (i32, i32) {
+    fn from(value: Axial) -> Self {
+        (value.q, value.r)
+    }
+}
+
 #[macro_export]
 macro_rules! axial {
     ($q:expr, $r:expr) => {
@@ -27,6 +33,46 @@ pub enum HexDirection {
     Back,
     BackLeft,
     FrontLeft,
+}
+
+impl From<i32> for HexDirection {
+    fn from(value: i32) -> Self {
+        match value % 6 {
+            -6 | 0 | 6 => HexDirection::Front,
+            -5 | 1 => HexDirection::FrontRight,
+            -4 | 2 => HexDirection::BackRight,
+            -3 | 3 => HexDirection::Back,
+            -2 | 4 => HexDirection::BackLeft,
+            -1 | 5 => HexDirection::FrontLeft,
+            _ => panic!(), // should never reach
+        }
+    }
+}
+
+impl From<HexDirection> for i32 {
+    fn from(value: HexDirection) -> Self {
+        match value {
+            HexDirection::Front => 0,
+            HexDirection::FrontRight => 1,
+            HexDirection::BackRight => 2,
+            HexDirection::Back => 3,
+            HexDirection::BackLeft => 4,
+            HexDirection::FrontLeft => 5,
+        }
+    }
+}
+
+impl HexDirection {
+    pub fn to_movement_vector(&self) -> Axial {
+        match self {
+            HexDirection::Front => axial!(1, 0),
+            HexDirection::FrontRight => axial!(0, 1),
+            HexDirection::BackRight => axial!(-1, 1),
+            HexDirection::Back => axial!(-1, 0),
+            HexDirection::BackLeft => axial!(0, -1),
+            HexDirection::FrontLeft => axial!(1, -1),
+        }
+    }
 }
 
 pub enum Axes {
