@@ -10,6 +10,18 @@ pub struct Float2D<T> {
     pub y: T,
 }
 
+#[macro_export]
+macro_rules! float2d {
+    ($x:expr) => {
+        Float2D { x: $x, y: $x }
+    };
+
+    ($x:expr, $y:expr) => {
+        Float2D { x: $x, y: $y }
+    };
+}
+pub use float2d;
+
 impl<T> Float2D<T> {}
 
 impl<T: AddAssign> AddAssign for Float2D<T> {
@@ -30,10 +42,7 @@ impl<T: Add<Output = T> + Copy> Add for Float2D<T> {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        Float2D {
-            x: self.x + rhs.x,
-            y: self.y + rhs.y,
-        }
+        float2d!(self.x + rhs.x, self.y + rhs.y)
     }
 }
 
@@ -41,24 +50,9 @@ impl<T: Neg<Output = T>> Neg for Float2D<T> {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
-        Float2D {
-            x: -self.x,
-            y: -self.y,
-        }
+        float2d!(-self.x, -self.y)
     }
 }
-
-#[macro_export]
-macro_rules! float2d {
-    ($x:expr) => {
-        Float2D { x: $x, y: $x }
-    };
-
-    ($x:expr, $y:expr) => {
-        Float2D { x: $x, y: $y }
-    };
-}
-pub use float2d;
 
 // Transformation matrix data structure.
 // Stores information to manipulate a coordinate in space.
