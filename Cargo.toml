@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 assert_float_eq = "1"
+ndarray = "0.16.1"

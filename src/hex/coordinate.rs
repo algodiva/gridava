@@ -26,6 +26,7 @@ macro_rules! axial {
 pub use axial;
 
 //Positive Q denotes forward vector
+#[derive(PartialEq, Eq, Debug)]
 pub enum HexDirection {
     Front,
     FrontRight,
@@ -37,13 +38,13 @@ pub enum HexDirection {
 
 impl From<i32> for HexDirection {
     fn from(value: i32) -> Self {
-        match value % 6 {
-            -6 | 0 | 6 => HexDirection::Front,
-            -5 | 1 => HexDirection::FrontRight,
-            -4 | 2 => HexDirection::BackRight,
-            -3 | 3 => HexDirection::Back,
-            -2 | 4 => HexDirection::BackLeft,
-            -1 | 5 => HexDirection::FrontLeft,
+        match value.rem_euclid(6) {
+            0 => HexDirection::Front,
+            1 => HexDirection::FrontRight,
+            2 => HexDirection::BackRight,
+            3 => HexDirection::Back,
+            4 => HexDirection::BackLeft,
+            5 => HexDirection::FrontLeft,
             _ => panic!(), // should never reach
         }
     }
@@ -167,6 +168,18 @@ mod tests {
         assert_eq!(Axial { q: 4, r: 3 }, axial!(4, 3));
         assert_ne!(Axial { q: 2, r: -1 }, axial!(1, -1));
         assert_ne!(Axial { q: 2, r: -1 }, axial!(2, -2));
+    }
+
+    #[test]
+    fn hex_dir_from() {
+        assert!(HexDirection::from(0) == HexDirection::Front);
+        assert!(HexDirection::from(5) == HexDirection::from(-1));
+        assert!(HexDirection::from(4) == HexDirection::from(-2));
+        assert!(HexDirection::from(3) == HexDirection::from(-3));
+        assert!(HexDirection::from(2) == HexDirection::from(-4));
+        assert!(HexDirection::from(1) == HexDirection::from(-5));
+        assert!(HexDirection::from(6) == HexDirection::from(-6));
+        assert!(HexDirection::from(6) == HexDirection::from(0));
     }
 
     #[test]
