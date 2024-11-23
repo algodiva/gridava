@@ -86,7 +86,7 @@ mod tests {
     use super::*;
 
     use crate::axial;
-    use assert_float_eq::assert_f64_near;
+    use assert_float_eq::*;
 
     #[test]
     fn world_to_hex() {
