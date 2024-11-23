@@ -14,9 +14,6 @@ pub struct HexShape<T: Clone> {
     pub transform: Transform<Axial>, // The transformation matrix to convert from parent grid to local space.
 }
 
-// TODO
-//      - scale shape? This will be a complicated task as to interpolate inbetween hexes
-
 impl<T: Clone> HexShape<T> {
     pub fn new(hex_array: Option<Array2<Tile<T>>>, transform: Option<Transform<Axial>>) -> Self
     where
@@ -31,7 +28,7 @@ impl<T: Clone> HexShape<T> {
     // Translate the shape in grid space.
     // coord: Vector defining translation direction and magnitude.
     pub fn translate(&mut self, coord: Axial) -> &Self {
-        self.transform.translate(coord);
+        self.transform.translation += coord;
         self
     }
 
@@ -40,7 +37,7 @@ impl<T: Clone> HexShape<T> {
     // rot_dir: positive denotes CW, negative CCW, magnitude denotes how many 60 degree rotations.
     pub fn rotate_about(&mut self, coord: Axial, rot_dir: i32) -> &Self {
         self.transform.translation = self.transform.translation.rotate(Some(coord), rot_dir);
-        self.transform.rotate(rot_dir);
+        self.transform.rotation += rot_dir;
         self
     }
 
@@ -51,13 +48,13 @@ impl<T: Clone> HexShape<T> {
         match coord {
             Some(coord) => self.rotate_about(coord, rot_dir),
             None => {
-                self.transform.rotate(rot_dir);
+                self.transform.rotation += rot_dir;
                 self
             }
         }
     }
 
-    pub fn resize(&mut self, scale: Float2D<f32>) -> &Self {
+    pub fn scale(&mut self, scale: Float2D<f32>) -> &Self {
         // Uses bilinear interpolation algorithm, it's lossless  meaning if you apply a scale and then it's inverse
         //  it will return to it's original shape.
 
@@ -86,14 +83,9 @@ impl<T: Clone> HexShape<T> {
                 new_arr[[x, y]] = self.shape[[src_x_clamped, src_y_clamped]].clone();
             }
         }
-
+        self.transform.scale *= scale;
         self.shape = new_arr;
         self
-    }
-
-    // Bake the transform into localspace
-    pub fn bake_transform(&mut self) -> HexShape<T> {
-        todo!()
     }
 
     // Retrieves the hex array in local space
