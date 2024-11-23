@@ -9,7 +9,7 @@ use super::coordinate::Axial;
 
 // A shape consists of coordinate vectors that define which hexes in relation to the origin are a part of the shape
 #[derive(Clone, PartialEq, Debug, Default)]
-pub struct HexShape<T> {
+pub struct HexShape<T: Clone> {
     shape: Array2<Tile<T>>, // 2D array of tiles, index corresponds to coordinate (q, r). Origin of (0,0) to (+∞,+∞).
     pub transform: Transform<Axial>, // The transformation matrix to convert from parent grid to local space.
 }
@@ -17,7 +17,7 @@ pub struct HexShape<T> {
 // TODO
 //      - scale shape? This will be a complicated task as to interpolate inbetween hexes
 
-impl<T> HexShape<T> {
+impl<T: Clone> HexShape<T> {
     pub fn new(hex_array: Option<Array2<Tile<T>>>, transform: Option<Transform<Axial>>) -> Self
     where
         T: Default,
@@ -58,20 +58,37 @@ impl<T> HexShape<T> {
     }
 
     pub fn resize(&mut self, scale: Float2D<f32>) -> &Self {
-        // trilinear resizing
+        // Uses bilinear interpolation algorithm, it's lossless  meaning if you apply a scale and then it's inverse
+        //  it will return to it's original shape.
 
-        // let x_ratio = if scale.x > 1.0 {
-        //     (self.transform.scale.x - 1.0) / (scale.x - 1.0)
-        // } else {
-        //     0.0
-        // };
-        // let y_ratio = if scale.y > 1.0 {
-        //     (self.transform.scale.y - 1.0) / (scale.y - 1.0)
-        // } else {
-        //     0.0
-        // };
+        let shape = self.shape.shape();
 
-        todo!()
+        let new_x = (shape[0] as f32 * scale.x).round() as usize;
+        let new_y = (shape[1] as f32 * scale.y).round() as usize;
+
+        let mut new_arr = Array2::from_shape_simple_fn((new_x, new_y), &Tile::default);
+
+        let x_ratio = (shape[0] as f32) / (new_x as f32);
+        let y_ratio = (shape[1] as f32) / (new_y as f32);
+
+        for y in 0..new_y {
+            for x in 0..new_x {
+                // Map new indices to old indices directly using ratios
+                //  Using .round() here to preserve inverse scaling returns to input
+                let src_x = (x as f32 * x_ratio).round() as usize;
+                let src_y = (y as f32 * y_ratio).round() as usize;
+
+                // Clamp indices to prevent out-of-bounds access
+                let src_x_clamped = src_x.min(shape[0] - 1);
+                let src_y_clamped = src_y.min(shape[1] - 1);
+
+                // Assign the corresponding tile from the source array
+                new_arr[[x, y]] = self.shape[[src_x_clamped, src_y_clamped]].clone();
+            }
+        }
+
+        self.shape = new_arr;
+        self
     }
 
     // Bake the transform into localspace
