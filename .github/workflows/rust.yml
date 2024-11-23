@@ -17,7 +17,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build
-      run: cargo build --verbose -- warnings
+      run: cargo build --verbose -- $flags
+      env:
+        flags: -D warnings
       
   test:
   
