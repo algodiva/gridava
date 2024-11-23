@@ -98,13 +98,13 @@ impl Inequality {
 // The algorithm *WILL* calculate it's inequalities on EVERY point in the array. So, in example, if you have a point
 // inside a shape, that point will still be calculated but will not change anything about the resultant inequality.
 // points: Coordinates to calculate the system of linear inequalities from.
-pub fn make_shape<T>(
+pub fn make_shape<T, F>(
     points: &[Axial],
-    data: Option<T>,
-    constructor: &dyn Fn(Option<T>) -> Tile<T>,
+    mut constructor: F
 ) -> HexShape<T>
 where
     T: Clone + Default,
+    F: FnMut() -> Tile<T>
 {
     if points.is_empty() {
         return HexShape::new(None, None);
@@ -123,7 +123,7 @@ where
     );
 
     for coord in hexes {
-        arr[[coord.q as usize, coord.r as usize]] = constructor(data.clone());
+        arr[[coord.q as usize, coord.r as usize]] = constructor();
     }
 
     HexShape::new(Some(arr), Some(transform))
@@ -148,49 +148,49 @@ pub use shapeargs;
 // Creates a line.
 // The shape has hexes originating from (0,0) in local space.
 // origin: Denotes the grid space location the shape occupies. Affects the transform.
-pub fn line<T>(
+pub fn line<T, F>(
     args: ShapeArgs,
-    data: Option<T>,
-    constructor: &dyn Fn(Option<T>) -> Tile<T>,
+    constructor: F,
 ) -> HexShape<T>
 where
     T: Clone + Default,
+    F: FnMut() -> Tile<T>
 {
     // Working in local space
     let vertex_a = axial!(0, 0);
     let vertex_b = vertex_a.make_vector(args.size as i32, args.rot_dir);
-    make_shape(&[vertex_a, vertex_b], data, constructor)
+    make_shape(&[vertex_a, vertex_b], constructor)
 }
 
 // Creates a regular triangle.
 // The shape has hexes originating from (0,0) in local space.
 // origin: Denotes the grid space location the shape occupies. Affects the transform.
-pub fn triangle<T>(
+pub fn triangle<T, F>(
     args: ShapeArgs,
-    data: Option<T>,
-    constructor: &dyn Fn(Option<T>) -> Tile<T>,
+    constructor: F,
 ) -> HexShape<T>
 where
     T: Clone + Default,
+    F: FnMut() -> Tile<T>
 {
     // Working in local space
     let vertex_a = axial!(0, 0);
     let vertex_b = vertex_a.make_vector(args.size as i32, args.rot_dir);
     let vertex_c = vertex_a.make_vector(args.size as i32, args.rot_dir + 1);
 
-    make_shape(&[vertex_a, vertex_b, vertex_c], data, constructor)
+    make_shape(&[vertex_a, vertex_b, vertex_c], constructor)
 }
 
 // Creates a regular rhombus.
 // The shape has hexes originating from (0,0) in local space.
 // origin: Denotes the grid space location the shape occupies. Affects the transform.
-pub fn rhombus<T>(
+pub fn rhombus<T, F>(
     args: ShapeArgs,
-    data: Option<T>,
-    constructor: &dyn Fn(Option<T>) -> Tile<T>,
+    constructor: F,
 ) -> HexShape<T>
 where
     T: Clone + Default,
+    F: FnMut() -> Tile<T>
 {
     // Working in local space
     let vertex_a = axial!(0, 0);
@@ -198,5 +198,5 @@ where
     let vertex_c = vertex_a.make_vector(args.size as i32, args.rot_dir + 1);
     let vertex_d = vertex_b.make_vector(args.size as i32, args.rot_dir + 1);
 
-    make_shape(&[vertex_a, vertex_b, vertex_c, vertex_d], data, constructor)
+    make_shape(&[vertex_a, vertex_b, vertex_c, vertex_d], constructor)
 }
