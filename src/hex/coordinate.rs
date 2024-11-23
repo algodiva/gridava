@@ -181,13 +181,41 @@ mod tests {
     }
 
     #[test]
+    fn swizzle_l() {
+        assert_eq!(axial!(4, 3).swizzle_l(), axial!(3, -7));
+    }
+
+    #[test]
+    fn swizzle_r() {
+        assert_eq!(axial!(4, 3).swizzle_r(), axial!(-7, 4));
+    }
+
+    #[test]
     fn add() {
         assert!(axial!(4, 2) + axial!(1, 3) == axial!(5, 5));
     }
 
     #[test]
+    fn add_assign() {
+        let mut ax = axial!(4, 2);
+
+        ax += axial!(-1, -3);
+
+        assert!(ax == axial!(3, -1));
+    }
+
+    #[test]
     fn sub() {
         assert!(axial!(4, 2) - axial!(1, 3) == axial!(3, -1));
+    }
+
+    #[test]
+    fn sub_assign() {
+        let mut ax = axial!(4, 2);
+
+        ax -= axial!(-1, -3);
+
+        assert!(ax == axial!(5, 5));
     }
 
     #[allow(clippy::erasing_op)]
@@ -201,5 +229,12 @@ mod tests {
     fn div() {
         assert!(axial!(4, 2) / 2 == axial!(2, 1));
         assert!(axial!(41, 23) / 6 == axial!(6, 3));
+    }
+
+    #[test]
+    #[should_panic]
+    #[allow(unused)]
+    fn div_by_zero() {
+        axial!(41, 23) / 0;
     }
 }
