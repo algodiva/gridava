@@ -39,7 +39,7 @@ macro_rules! transform {
     //         scale: $s,
     //     }
     // };
-}
+} 
 pub use transform;
 
 // Default trait implementation.
