@@ -2,6 +2,14 @@
 name = "gridava"
 version = "0.1.0"
 edition = "2021"
+description = "An implementation of 2D coordinate systems."
+readme = "README.md"
+repository = "https://github.com/algodiva/gridava"
+license = "GPL-3.0-only"
+license-file = "LICENSE"
+keywords = ["gamedev", "grid", "coordinate"]
+categories = ["data-structures", "game-development"]
+exclude = ["/.gitignore", "/TODO", "/.gitattributes", "/.github"]
 
 [dependencies]
 assert_float_eq = "1"
