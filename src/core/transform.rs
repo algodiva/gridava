@@ -29,11 +29,7 @@ macro_rules! transform {
             rotation: $r,
             scale: 1,
         }
-    }; 
-    
-    
-    
-    // When scale is working we can uncomment this.
+    }; // When scale is working we can uncomment this.
        // ($t:expr, $r:expr, $s:expr) => {
        //     Transform {
        //         translation: $t,
