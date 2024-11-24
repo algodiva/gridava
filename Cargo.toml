@@ -9,6 +9,7 @@ license = "GPL-3.0-only"
 license-file = "LICENSE"
 keywords = ["gamedev", "grid", "coordinate"]
 categories = ["data-structures", "game-development"]
+exclude = ["/.gitignore", "/TODO", "/.gitattributes"]
 
 [dependencies]
 assert_float_eq = "1"
