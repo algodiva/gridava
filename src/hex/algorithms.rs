@@ -5,15 +5,12 @@ use crate::axial;
 use super::coordinate::{Axes, Axial, HexDirection};
 
 impl Axial {
+    pub fn make_vector(&self, distance: i32, rot_dir: i32) -> Self {
+        *self + HexDirection::from(rot_dir).to_movement_vector() * distance
+    }
+
     pub fn neighbor(&self, direction: HexDirection) -> Self {
-        match direction {
-            HexDirection::Front => axial!(self.q + 1, self.r),
-            HexDirection::FrontRight => axial!(self.q, self.r + 1),
-            HexDirection::BackRight => axial!(self.q - 1, self.r + 1),
-            HexDirection::Back => axial!(self.q - 1, self.r),
-            HexDirection::BackLeft => axial!(self.q, self.r - 1),
-            HexDirection::FrontLeft => axial!(self.q + 1, self.r - 1),
-        }
+        self.make_vector(1, direction.into())
     }
 
     pub fn distance(&self, b: Self) -> i32 {
@@ -128,6 +125,16 @@ mod tests {
     use super::*;
 
     #[test]
+    fn make_vector() {
+        assert_eq!(axial!(6, 4).make_vector(4, 0), axial!(10, 4));
+        assert_eq!(axial!(6, 4).make_vector(4, 1), axial!(6, 8));
+        assert_eq!(axial!(6, 4).make_vector(4, 2), axial!(2, 8));
+        assert_eq!(axial!(6, 4).make_vector(4, 3), axial!(2, 4));
+        assert_eq!(axial!(6, 4).make_vector(4, 4), axial!(6, 0));
+        assert_eq!(axial!(6, 4).make_vector(4, 5), axial!(10, 0));
+    }
+
+    #[test]
     fn neighbor() {
         assert_eq!(axial!(6, 4).neighbor(HexDirection::Back), axial!(5, 4));
         assert_eq!(axial!(6, 4).neighbor(HexDirection::BackLeft), axial!(6, 3));
@@ -146,6 +153,14 @@ mod tests {
         assert_eq!(axial!(-1, -1).distance(axial!(1, -1)), 2);
         assert_eq!(axial!(-1, -1).distance(axial!(-1, 1)), 2);
         assert_eq!(axial!(-1, -1).distance(axial!(2, 1)), 5);
+    }
+
+    #[test]
+    fn round() {
+        assert_eq!(Axial::round((2.5, 1.5)), axial!(2, 2));
+        assert_eq!(Axial::round((2.5, -1.5)), axial!(3, -2));
+        assert_eq!(Axial::round((-2.5, -1.5)), axial!(-2, -2));
+        assert_eq!(Axial::round((-2.5, 1.5)), axial!(-3, 2));
     }
 
     #[test]

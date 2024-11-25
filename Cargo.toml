@@ -12,4 +12,7 @@ categories = ["data-structures", "game-development"]
 exclude = ["/.gitignore", "/TODO", "/.gitattributes", "/.github"]
 
 [dependencies]
+ndarray = "0.16.1"
+
+[dev-dependencies]
 assert_float_eq = "1"
