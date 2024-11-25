@@ -135,6 +135,7 @@ where
     }
 }
 
+#[allow(unused_imports)]
 mod tests {
     use super::*;
 

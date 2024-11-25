@@ -94,6 +94,7 @@ impl<T: Clone> HexShape<T> {
     }
 }
 
+#[allow(unused_imports)]
 mod tests {
     use super::*;
     use crate::axial;

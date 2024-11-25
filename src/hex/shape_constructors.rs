@@ -189,6 +189,7 @@ where
     make_shape(&[vertex_a, vertex_b, vertex_c, vertex_d], constructor)
 }
 
+#[allow(unused_imports)]
 mod tests {
     use super::*;
 
