@@ -77,7 +77,7 @@ macro_rules! transform {
         Transform {
             translation: $t,
             rotation: $r,
-            scale: (1.0, 1.0),
+            scale: float2d!(1.0, 1.0),
         }
     };
 
@@ -132,5 +132,58 @@ where
             rotation: -self.rotation,
             scale: -self.scale,
         }
+    }
+}
+
+mod tests {
+    use super::*;
+
+    #[test]
+    fn add_assign() {
+        let mut f2d = float2d!(2, 3);
+        f2d += float2d!(4, 5);
+        assert_eq!(f2d, float2d!(6, 8));
+    }
+
+    #[test]
+    fn mul_assign() {
+        let mut f2d = float2d!(2, 3);
+        f2d *= float2d!(4, 5);
+        assert_eq!(f2d, float2d!(8, 15));
+    }
+
+    #[test]
+    fn add() {
+        assert_eq!(float2d!(2, 3) + float2d!(4, 5), float2d!(6, 8));
+    }
+
+    #[test]
+    fn neg() {
+        assert_eq!(-float2d!(-2), float2d!(2));
+    }
+
+    #[test]
+    fn create_transform() {
+        assert_eq!(Transform::default(), transform!(0, 0, float2d!(1.0, 1.0)));
+        assert_eq!(transform!(2), transform!(2, 0, float2d!(1.0, 1.0)));
+        assert_eq!(transform!(2, 4), transform!(2, 4, float2d!(1.0, 1.0)));
+    }
+
+    #[test]
+    fn add_transform() {
+        let trans = transform!(0, 0, float2d!(1.0, 1.0));
+
+        assert_eq!(
+            trans.add(transform!(1, 2, float2d!(0.5, 1.5))),
+            transform!(1, 2, float2d!(1.5, 2.5))
+        );
+    }
+
+    #[test]
+    fn neg_transform() {
+        assert_eq!(
+            -transform!(2, 6, float2d!(2.0, 3.0)),
+            transform!(-2, -6, float2d!(-2.0, -3.0)),
+        );
     }
 }
