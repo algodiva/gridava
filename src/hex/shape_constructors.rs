@@ -188,3 +188,53 @@ where
 
     make_shape(&[vertex_a, vertex_b, vertex_c, vertex_d], constructor)
 }
+
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_line() {
+        let default_tile_fn = &Tile::<i32>::default;
+
+        assert_eq!(
+            line(
+                ShapeArgs {
+                    size: 0,
+                    rot_dir: 0
+                },
+                default_tile_fn
+            ),
+            make_shape(&[axial!(0, 0)], default_tile_fn)
+        );
+        assert_eq!(
+            line(
+                ShapeArgs {
+                    size: 4,
+                    rot_dir: 0
+                },
+                default_tile_fn
+            ),
+            make_shape(&[axial!(0, 0), axial!(0, 4)], default_tile_fn)
+        );
+        assert_eq!(
+            line(
+                ShapeArgs {
+                    size: 2,
+                    rot_dir: 1
+                },
+                default_tile_fn
+            ),
+            make_shape(&[axial!(0, 2), axial!(1, 2), axial!(2, 2)], default_tile_fn)
+        );
+        assert_eq!(
+            line(
+                ShapeArgs {
+                    size: 2,
+                    rot_dir: 2
+                },
+                default_tile_fn
+            ),
+            make_shape(&[axial!(0, 4), axial!(1, 4), axial!(2, 4)], default_tile_fn)
+        );
+    }
+}

@@ -4,7 +4,7 @@ use coordinate::Axial;
 
 use super::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum HexOrientation {
     FlatTop,
     PointyTop,
@@ -87,6 +87,15 @@ mod tests {
 
     use crate::axial;
     use assert_float_eq::*;
+
+    #[test]
+    fn default() {
+        let def = HexGrid::<i32>::default();
+
+        assert_eq!(def.orientation, HexOrientation::PointyTop);
+        assert_eq!(def.hex_size, 32.0);
+        assert!(def.collection.is_empty());
+    }
 
     #[test]
     fn world_to_hex() {
