@@ -93,3 +93,63 @@ impl<T: Clone> HexShape<T> {
         self.shape.view()
     }
 }
+
+mod tests {
+    use super::*;
+    use crate::axial;
+
+    #[test]
+    fn translate() {
+        let mut shape = HexShape::<i32>::new(None, None);
+
+        shape.translate(axial!(4, 6));
+        assert_eq!(shape.transform.translation, axial!(4, 6));
+
+        shape.translate(axial!(2, -3));
+        assert_eq!(shape.transform.translation, axial!(6, 3));
+    }
+
+    #[test]
+    fn rotate_about() {
+        let mut shape = HexShape::<i32>::new(None, None);
+
+        shape.rotate_about(axial!(1, 2), 0);
+        assert_eq!(shape.transform.translation, axial!(0, 0));
+        assert_eq!(shape.transform.rotation, 0);
+
+        shape.rotate_about(axial!(1, 2), 1);
+        assert_eq!(shape.transform.translation, axial!(3, -1));
+        assert_eq!(shape.transform.rotation, 1);
+
+        shape.rotate_about(axial!(1, 2), -1);
+        assert_eq!(shape.transform.translation, axial!(0, 0));
+        assert_eq!(shape.transform.rotation, 0);
+
+        shape.rotate_about(axial!(1, 2), 2);
+        assert_eq!(shape.transform.translation, axial!(4, 1));
+        assert_eq!(shape.transform.rotation, 2);
+
+        shape.rotate_about(axial!(1, 2), -2);
+        assert_eq!(shape.transform.translation, axial!(0, 0));
+        assert_eq!(shape.transform.rotation, 0);
+
+        shape.rotate_about(axial!(1, 2), 3);
+        assert_eq!(shape.transform.translation, axial!(2, 4));
+        assert_eq!(shape.transform.rotation, 3);
+    }
+
+    #[test]
+    fn rotate() {
+        let mut shape = HexShape::<i32>::new(None, None);
+
+        shape.rotate(None, 2);
+        assert_eq!(shape.transform.translation, axial!(0, 0));
+        assert_eq!(shape.transform.rotation, 2);
+
+        shape.rotate(Some(axial!(1, 2)), 2);
+        assert_eq!(shape.transform.translation, axial!(4, 1));
+        assert_eq!(shape.transform.rotation, 4);
+    }
+
+    // TODO: scale, get_hexes
+}
