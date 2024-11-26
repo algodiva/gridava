@@ -1,13 +1,17 @@
 //! Shapes in a hex grid.
 
-use ndarray::{Array2, ArrayView2};
+use ndarray::{Array, Array2, ArrayView2};
 
-use crate::core::{
-    tile::Tile,
-    transform::{Transform, Vector2D},
+use crate::{
+    axial,
+    core::{
+        tile::Tile,
+        transform::{Transform, Vector2D},
+    },
+    transform, vector2d,
 };
 
-use super::coordinate::Axial;
+use super::axial::Axial;
 
 /// A shape is a collection of coordinates.
 ///
@@ -19,6 +23,30 @@ pub struct HexShape<T: Clone> {
     shape: Array2<Tile<T>>, // 2D array of tiles, index corresponds to coordinate (q, r). Origin of (0,0) to (+∞,+∞).
     pub transform: Transform<Axial>, // The transformation matrix to convert from parent grid to local space.
 }
+
+/// Struct to handle arguments to shape constructors.
+///
+/// `size` field denotes length.
+///
+/// `rot_dir`: positive denotes CW, negative CCW, magnitude denotes how many 60 degree rotations.
+pub struct ShapeArgs {
+    pub size: u32,
+    pub rot_dir: i32,
+    pub square_bb: bool,
+}
+
+/// Helper macro to create [`ShapeArgs`]
+#[macro_export]
+macro_rules! shapeargs {
+    ($s:expr, $rd:expr, $sbb:expr) => {
+        ShapeArgs {
+            size: $s,
+            rot_dir: $rd,
+            square_bb: $sbb,
+        }
+    };
+}
+pub use shapeargs;
 
 impl<T: Clone> HexShape<T> {
     /// Create a new shape.
@@ -41,12 +69,174 @@ impl<T: Clone> HexShape<T> {
         }
     }
 
+    /// Creates a shape via inequalities.
+    ///
+    /// Will create an irregular or regular shape based on a system of linear inequalities
+    /// derived from the provided points slice.
+    ///
+    /// ```
+    /// use gridava::core::tile::Tile;
+    /// use gridava::hex::axial::*;
+    /// use gridava::hex::shape::*;
+    ///
+    /// /// shape_verts stores a triangle of size 1
+    /// let shape_verts = vec![axial!(0, 0), axial!(0, 1), axial!(1, 0)];
+    /// let my_shape = HexShape::make_shape(&shape_verts, true, || Tile::new(Some(1)));
+    /// ```
+    ///
+    /// The algorithm *WILL* calculate its inequalities on EVERY point in the array. So, in example, if you have a point
+    /// inside a shape, that point will still be calculated but will not change anything about the resultant inequality.
+    pub fn make_shape<F>(points: &[Axial], square_bb: bool, mut constructor: F) -> HexShape<T>
+    where
+        T: Clone + Default,
+        F: FnMut() -> Tile<T>,
+    {
+        // We cannot construct a shape with no points, return an empty shape.
+        if points.is_empty() {
+            return HexShape::new(None, None);
+        }
+
+        // Assign our transform.
+        let transform = transform!(axial!(0, 0));
+
+        // Compute a system of linear inequalities.
+        let mut q_min = i32::MAX;
+        let mut q_max = i32::MIN;
+        let mut r_min = i32::MAX;
+        let mut r_max = i32::MIN;
+        let mut s_min = i32::MAX;
+        let mut s_max = i32::MIN;
+        for point in points {
+            q_min = q_min.min(point.q);
+            q_max = q_max.max(point.q);
+            r_min = r_min.min(point.r);
+            r_max = r_max.max(point.r);
+            let s = point.compute_s();
+            s_min = s_min.min(s);
+            s_max = s_max.max(s);
+        }
+
+        // Solve for all the hexes inside an inequality.
+        let hexes: Vec<Axial> = (q_min..=q_max)
+            .flat_map(|q| {
+                (r_min.max(-q - s_max)..=r_max.min(-q - s_min))
+                    .map(move |r| axial!(q - q_min, r - r_min))
+            })
+            .collect();
+
+        // Find the bounding size of this inequality as a square or tightly
+        // bound according to the value of square_bb.
+        let size = match square_bb {
+            true => {
+                let largest = (q_max - q_min)
+                    .unsigned_abs()
+                    .max((r_max - r_min).unsigned_abs());
+                ((largest + 1) as usize, (largest + 1) as usize)
+            }
+            false => (
+                ((q_max - q_min).unsigned_abs() + 1) as usize,
+                ((r_max - r_min).unsigned_abs() + 1) as usize,
+            ),
+        };
+
+        // Create our array.
+        let mut arr = Array::from_shape_simple_fn(size, &Tile::default);
+
+        // Construct tiles that the shape contains.
+        for coord in hexes {
+            arr[[coord.q as usize, coord.r as usize]] = constructor();
+        }
+
+        HexShape::new(Some(arr), Some(transform))
+    }
+
+    /// Create a line shape.
+    ///
+    /// Given a size and direction, see [`ShapeArgs`], this will create a line.
+    ///
+    /// see [`make_shape`] for more.
+    ///
+    /// ```
+    /// use gridava::core::tile::Tile;
+    /// use gridava::hex::shape::*;
+    ///
+    /// /// Creates a line of size 1, 0-1 inclusive, and sets the tiles to Some(1)
+    /// let my_shape = HexShape::line(shapeargs!(1, 0, true), || Tile::new(Some(1)));
+    /// ```
+    pub fn line<F>(args: ShapeArgs, constructor: F) -> HexShape<T>
+    where
+        T: Clone + Default,
+        F: FnMut() -> Tile<T>,
+    {
+        // Working in local space
+        let vertex_a = axial!(0, 0);
+        let vertex_b = vertex_a.make_vector(args.size as i32, args.rot_dir);
+        Self::make_shape(&[vertex_a, vertex_b], args.square_bb, constructor)
+    }
+
+    /// Create a triangle shape.
+    ///
+    /// Given a size and direction, see [`ShapeArgs`], this will create a triangle.
+    ///
+    /// see [`make_shape`] for more.
+    ///
+    /// ```
+    /// use gridava::core::tile::Tile;
+    /// use gridava::hex::shape::*;
+    ///
+    /// /// Creates a triangle of size 1, 0-1 inclusive, and sets the tiles to Some(1)
+    /// let my_shape = HexShape::triangle(shapeargs!(1, 0, true), || Tile::new(Some(1)));
+    /// ```
+    pub fn triangle<F>(args: ShapeArgs, constructor: F) -> HexShape<T>
+    where
+        T: Clone + Default,
+        F: FnMut() -> Tile<T>,
+    {
+        // Working in local space
+        let vertex_a = axial!(0, 0);
+        let vertex_b = vertex_a.make_vector(args.size as i32, args.rot_dir);
+        let vertex_c = vertex_a.make_vector(args.size as i32, args.rot_dir + 1);
+
+        Self::make_shape(&[vertex_a, vertex_b, vertex_c], args.square_bb, constructor)
+    }
+
+    /// Create a rhombus shape.
+    ///
+    /// Given a size and direction, see [`ShapeArgs`], this will create a rhombus.
+    ///
+    /// see [`make_shape`] for more.
+    ///
+    /// ```
+    /// use gridava::core::tile::Tile;
+    /// use gridava::hex::shape::*;
+    ///
+    /// /// Creates a rhombus of size 1, 0-1 inclusive, and sets the tiles to Some(1)
+    /// let my_shape = HexShape::rhombus(shapeargs!(1, 0, true), || Tile::new(Some(1)));
+    /// ```
+    pub fn rhombus<F>(args: ShapeArgs, constructor: F) -> HexShape<T>
+    where
+        T: Clone + Default,
+        F: FnMut() -> Tile<T>,
+    {
+        // Working in local space
+        let vertex_a = axial!(0, 0);
+        let vertex_b = vertex_a.make_vector(args.size as i32, args.rot_dir);
+        let vertex_c = vertex_a.make_vector(args.size as i32, args.rot_dir + 1);
+        let vertex_d = vertex_b.make_vector(args.size as i32, args.rot_dir + 1);
+
+        Self::make_shape(
+            &[vertex_a, vertex_b, vertex_c, vertex_d],
+            args.square_bb,
+            constructor,
+        )
+    }
+
     /// Translate the shape.
     ///
     /// Mutates the transform of the shape.
     ///
     /// ```
-    /// use gridava::hex::coordinate::{Axial, axial};
+    /// use gridava::hex::axial::*;
     /// use gridava::hex::shape::HexShape;
     ///
     /// let mut my_shape: HexShape<i32> = HexShape::new(None, None);
@@ -65,7 +255,7 @@ impl<T: Clone> HexShape<T> {
     /// `rot_dir`: positive denotes CW, negative CCW, magnitude denotes how many 60 degree rotations.
     ///
     /// ```
-    /// use gridava::hex::coordinate::{Axial, axial};
+    /// use gridava::hex::axial::{Axial, axial};
     /// use gridava::hex::shape::HexShape;
     ///
     /// /// The shape has an origin of (0, 0)
@@ -88,7 +278,7 @@ impl<T: Clone> HexShape<T> {
     /// `rot_dir`: positive denotes CW, negative CCW, magnitude denotes how many 60 degree rotations.
     /// ```
     /// use gridava::hex::shape::HexShape;
-    /// use gridava::hex::coordinate::{Axial, axial};
+    /// use gridava::hex::axial::*;
     ///
     /// /// Rotate the shape about the coordinate (1, 1) clockwise.
     /// HexShape::<i32>::new(None, None).rotate(Some(axial!(1, 1)), 1);
@@ -151,7 +341,7 @@ impl<T: Clone> HexShape<T> {
     /// Returns a vector of [`Axial`] denoting coordinates the shape contains.
     ///
     /// ```
-    /// use gridava::hex::coordinate::{Axial, axial};
+    /// use gridava::hex::axial::{Axial, axial};
     /// use gridava::hex::shape::HexShape;
     /// use gridava::core::tile::Tile;
     /// use ndarray::array;
@@ -220,6 +410,64 @@ mod tests {
         shape.rotate(Some(axial!(1, 2)), 2);
         assert_eq!(shape.transform.translation, axial!(4, 1));
         assert_eq!(shape.transform.rotation, 4);
+    }
+
+    #[test]
+    fn test_line() {
+        let default_tile_fn = &Tile::<i32>::default;
+
+        assert_eq!(
+            HexShape::line(
+                ShapeArgs {
+                    size: 0,
+                    rot_dir: 0,
+                    square_bb: true
+                },
+                default_tile_fn
+            ),
+            HexShape::make_shape(&[axial!(0, 0)], true, default_tile_fn)
+        );
+        assert_eq!(
+            HexShape::line(
+                ShapeArgs {
+                    size: 4,
+                    rot_dir: 0,
+                    square_bb: true
+                },
+                default_tile_fn
+            ),
+            HexShape::make_shape(&[axial!(0, 0), axial!(0, 4)], true, default_tile_fn)
+        );
+        assert_eq!(
+            HexShape::line(
+                ShapeArgs {
+                    size: 2,
+                    rot_dir: 1,
+                    square_bb: true
+                },
+                default_tile_fn
+            ),
+            HexShape::make_shape(
+                &[axial!(0, 2), axial!(1, 2), axial!(2, 2)],
+                true,
+                default_tile_fn
+            )
+        );
+        assert_eq!(
+            HexShape::line(
+                ShapeArgs {
+                    size: 2,
+                    rot_dir: 2,
+                    square_bb: true
+                },
+                default_tile_fn
+            ),
+            HexShape::make_shape(
+                &[axial!(0, 4), axial!(1, 4), axial!(2, 4)],
+                true,
+                default_tile_fn
+            )
+        );
     }
 
     // TODO: scale, get_hexes
