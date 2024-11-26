@@ -6,7 +6,11 @@ use coordinate::Axial;
 
 use super::*;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// Enum denoting orientation of hexagons in a grid.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
 pub enum HexOrientation {
     FlatTop,
@@ -23,6 +27,7 @@ pub const SQRT_3: f64 = 1.732050807568877293527446341505872367_f64;
 /// This entity owns the tiles in its coordinate system.
 ///
 /// Contains useful functions to convert to and from world space and grid coordinates.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
 pub struct HexGrid<TileType> {
     pub orientation: HexOrientation,
