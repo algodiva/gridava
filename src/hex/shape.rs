@@ -1,13 +1,19 @@
+//! Shapes in a hex grid.
+
 use ndarray::{Array2, ArrayView2};
 
 use crate::core::{
     tile::Tile,
-    transform::{Float2D, Transform},
+    transform::{Transform, Vector2D},
 };
 
 use super::coordinate::Axial;
 
-// A shape consists of coordinate vectors that define which hexes in relation to the origin are a part of the shape
+/// A shape is a collection of coordinates.
+///
+/// Each coordinate is a vector that 'points' to the origin coordinate creating a shape local space.
+/// The transformation matrix associated to the shape is then used to convert this local space to the
+/// coordinate space of the parent.
 #[derive(Clone, PartialEq, Debug, Default)]
 pub struct HexShape<T: Clone> {
     shape: Array2<Tile<T>>, // 2D array of tiles, index corresponds to coordinate (q, r). Origin of (0,0) to (+∞,+∞).
@@ -15,6 +21,16 @@ pub struct HexShape<T: Clone> {
 }
 
 impl<T: Clone> HexShape<T> {
+    /// Create a new shape.
+    ///
+    /// Can be provided with optional parameters to specify coordinates it occupies
+    /// and its transform. These will default to none and (0, 0) respectively.
+    ///
+    /// ```
+    /// use gridava::hex::shape::HexShape;
+    ///
+    /// let my_shape: HexShape<i32> = HexShape::new(None, None);
+    /// ```
     pub fn new(hex_array: Option<Array2<Tile<T>>>, transform: Option<Transform<Axial>>) -> Self
     where
         T: Default,
@@ -25,25 +41,58 @@ impl<T: Clone> HexShape<T> {
         }
     }
 
-    // Translate the shape in grid space.
-    // coord: Vector defining translation direction and magnitude.
+    /// Translate the shape.
+    ///
+    /// Mutates the transform of the shape.
+    ///
+    /// ```
+    /// use gridava::hex::coordinate::{Axial, axial};
+    /// use gridava::hex::shape::HexShape;
+    ///
+    /// let mut my_shape: HexShape<i32> = HexShape::new(None, None);
+    /// /// Move the shape in the positive q and r axes by 1.
+    /// my_shape.translate(axial!(1, 1));
+    /// ```
     pub fn translate(&mut self, coord: Axial) -> &Self {
         self.transform.translation += coord;
         self
     }
 
-    // Rotates the shape about a specific point in grid space.
-    // coord: A specific point to rotate about.
-    // rot_dir: positive denotes CW, negative CCW, magnitude denotes how many 60 degree rotations.
+    /// Rotate the shape.
+    ///
+    /// Mutates the transform of the shape.
+    ///
+    /// `rot_dir`: positive denotes CW, negative CCW, magnitude denotes how many 60 degree rotations.
+    ///
+    /// ```
+    /// use gridava::hex::coordinate::{Axial, axial};
+    /// use gridava::hex::shape::HexShape;
+    ///
+    /// /// The shape has an origin of (0, 0)
+    /// let mut my_shape: HexShape<i32> = HexShape::new(None, None);
+    /// /// Rotate the shape around the coordinate (1, 1) clockwise.
+    /// my_shape.rotate_about(axial!(1, 1), 1);
+    /// ```
     pub fn rotate_about(&mut self, coord: Axial, rot_dir: i32) -> &Self {
         self.transform.translation = self.transform.translation.rotate(Some(coord), rot_dir);
         self.transform.rotation += rot_dir;
         self
     }
 
-    // Rotates the shape, either about it's local origin or some point.
-    // coord: Some denotes about a specific point, None denotes around the shape's center
-    // rot_dir: positive denotes CW, negative CCW, magnitude denotes how many 60 degree rotations.
+    /// Rotates the shape, either about its local origin or some point.
+    ///
+    /// Mutates the transform of the shape.
+    ///
+    /// `coord`: Some denotes about a specific point, None denotes around the shape's center.
+    ///
+    /// `rot_dir`: positive denotes CW, negative CCW, magnitude denotes how many 60 degree rotations.
+    /// ```
+    /// use gridava::hex::shape::HexShape;
+    /// use gridava::hex::coordinate::{Axial, axial};
+    ///
+    /// /// Rotate the shape about the coordinate (1, 1) clockwise.
+    /// HexShape::<i32>::new(None, None).rotate(Some(axial!(1, 1)), 1);
+    /// ```
     pub fn rotate(&mut self, coord: Option<Axial>, rot_dir: i32) -> &Self {
         match coord {
             Some(coord) => self.rotate_about(coord, rot_dir),
@@ -54,8 +103,19 @@ impl<T: Clone> HexShape<T> {
         }
     }
 
-    pub fn scale(&mut self, scale: Float2D<f32>) -> &Self {
-        // Uses bilinear interpolation algorithm, it's lossless  meaning if you apply a scale and then it's inverse
+    /// Scale a shape.
+    ///
+    /// Mutates the internal array itself.
+    ///
+    /// ```
+    /// use gridava::hex::shape::HexShape;
+    /// use gridava::core::transform::{Vector2D, vector2d};
+    ///
+    /// let mut my_shape: HexShape<i32> = HexShape::new(None, None);
+    /// my_shape.scale(vector2d!(2.0, 2.0));
+    /// ```
+    pub fn scale(&mut self, scale: Vector2D<f32>) -> &Self {
+        // Uses bilinear interpolation algorithm, it's lossless  meaning if you apply a scale and then its inverse
         //  it will return to it's original shape.
 
         let shape = self.shape.shape();
@@ -88,7 +148,17 @@ impl<T: Clone> HexShape<T> {
         self
     }
 
-    // Retrieves the hex array in local space
+    /// Returns a vector of [`Axial`] denoting coordinates the shape contains.
+    ///
+    /// ```
+    /// use gridava::hex::coordinate::{Axial, axial};
+    /// use gridava::hex::shape::HexShape;
+    /// use gridava::core::tile::Tile;
+    /// use ndarray::array;
+    ///
+    /// let my_shape: HexShape<i32> = HexShape::new(Some(array![[Tile::<i32>::default()],[Tile::<i32>::default()]]), None);
+    /// let hexes_ls = my_shape.get_hexes();
+    /// ```
     pub fn get_hexes(&self) -> ArrayView2<Tile<T>> {
         self.shape.view()
     }

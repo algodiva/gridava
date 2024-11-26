@@ -19,13 +19,13 @@ jobs:
     - name: Check
       run: cargo check
 
-  clippy:
+  werror:
 
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
-    - name: Clippy
+    - name: Warnings
       run: cargo clippy -- -D warnings
       
   test:
@@ -34,5 +34,5 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Test
+    - name: Tests
       run: cargo test --no-fail-fast

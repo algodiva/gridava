@@ -1,3 +1,5 @@
+//! collection of constructors for a shape.
+
 use std::error::Error;
 
 use super::{coordinate::Axial, shape::HexShape};
@@ -7,8 +9,8 @@ use ndarray::Array;
 use crate::{
     axial,
     core::tile::Tile,
-    core::transform::{Float2D, Transform},
-    float2d, transform,
+    core::transform::{Transform, Vector2D},
+    transform, vector2d,
 };
 
 #[derive(Debug)]
@@ -93,11 +95,23 @@ impl Inequality {
     }
 }
 
-// Creates a shape.
-// This algorithm will produce regular and irregular shapes with points from points argument.
-// The algorithm *WILL* calculate it's inequalities on EVERY point in the array. So, in example, if you have a point
-// inside a shape, that point will still be calculated but will not change anything about the resultant inequality.
-// points: Coordinates to calculate the system of linear inequalities from.
+/// Creates a shape via inequalities.
+///
+/// Will create an irregular or regular shape based on a system of linear inequalities
+/// derived from the provided points slice.
+///
+/// ```
+/// use gridava::core::tile::Tile;
+/// use gridava::hex::coordinate::*;
+/// use gridava::hex::shape_constructors;
+///
+/// /// shape_verts stores a triangle of size 1
+/// let shape_verts = vec![axial!(0, 0), axial!(0, 1), axial!(1, 0)];
+/// let my_shape = shape_constructors::make_shape(&shape_verts, || Tile::new(Some(1)));
+/// ```
+///
+/// The algorithm *WILL* calculate its inequalities on EVERY point in the array. So, in example, if you have a point
+/// inside a shape, that point will still be calculated but will not change anything about the resultant inequality.
 pub fn make_shape<T, F>(points: &[Axial], mut constructor: F) -> HexShape<T>
 where
     T: Clone + Default,
@@ -126,11 +140,17 @@ where
     HexShape::new(Some(arr), Some(transform))
 }
 
+/// Struct to handle arguments to shape constructors.
+///
+/// `size` field denotes length.
+///
+/// `rot_dir`: positive denotes CW, negative CCW, magnitude denotes how many 60 degree rotations.
 pub struct ShapeArgs {
     pub size: u32,
     pub rot_dir: i32,
 }
 
+/// Helper macro to create [`ShapeArgs`]
 #[macro_export]
 macro_rules! shapeargs {
     ($s:expr, $rd:expr) => {
@@ -142,9 +162,19 @@ macro_rules! shapeargs {
 }
 pub use shapeargs;
 
-// Creates a line.
-// The shape has hexes originating from (0,0) in local space.
-// origin: Denotes the grid space location the shape occupies. Affects the transform.
+/// Create a line shape.
+///
+/// Given a size and direction, see [`ShapeArgs`], this will create a line.
+///
+/// see [`make_shape`] for more.
+///
+/// ```
+/// use gridava::core::tile::Tile;
+/// use gridava::hex::{shape_constructors, shape_constructors::*};
+///
+/// /// Creates a line of size 1, 0-1 inclusive, and sets the tiles to Some(1)
+/// let my_shape = shape_constructors::line(shapeargs!(1, 0), || Tile::new(Some(1)));
+/// ```
 pub fn line<T, F>(args: ShapeArgs, constructor: F) -> HexShape<T>
 where
     T: Clone + Default,
@@ -156,9 +186,19 @@ where
     make_shape(&[vertex_a, vertex_b], constructor)
 }
 
-// Creates a regular triangle.
-// The shape has hexes originating from (0,0) in local space.
-// origin: Denotes the grid space location the shape occupies. Affects the transform.
+/// Create a triangle shape.
+///
+/// Given a size and direction, see [`ShapeArgs`], this will create a triangle.
+///
+/// see [`make_shape`] for more.
+///
+/// ```
+/// use gridava::core::tile::Tile;
+/// use gridava::hex::{shape_constructors, shape_constructors::*};
+///
+/// /// Creates a triangle of size 1, 0-1 inclusive, and sets the tiles to Some(1)
+/// let my_shape = shape_constructors::triangle(shapeargs!(1, 0), || Tile::new(Some(1)));
+/// ```
 pub fn triangle<T, F>(args: ShapeArgs, constructor: F) -> HexShape<T>
 where
     T: Clone + Default,
@@ -172,9 +212,19 @@ where
     make_shape(&[vertex_a, vertex_b, vertex_c], constructor)
 }
 
-// Creates a regular rhombus.
-// The shape has hexes originating from (0,0) in local space.
-// origin: Denotes the grid space location the shape occupies. Affects the transform.
+/// Create a rhombus shape.
+///
+/// Given a size and direction, see [`ShapeArgs`], this will create a rhombus.
+///
+/// see [`make_shape`] for more.
+///
+/// ```
+/// use gridava::core::tile::Tile;
+/// use gridava::hex::{shape_constructors, shape_constructors::*};
+///
+/// /// Creates a rhombus of size 1, 0-1 inclusive, and sets the tiles to Some(1)
+/// let my_shape = shape_constructors::rhombus(shapeargs!(1, 0), || Tile::new(Some(1)));
+/// ```
 pub fn rhombus<T, F>(args: ShapeArgs, constructor: F) -> HexShape<T>
 where
     T: Clone + Default,

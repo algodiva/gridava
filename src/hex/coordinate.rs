@@ -1,8 +1,16 @@
+//! Coordinate system for hex based grids.
+
 use std::{
     cmp::PartialEq,
     ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign},
 };
 
+/// Axial based coordinates for hexagon grids.
+///
+/// This coordinate system follows the law that `q + r + s = 0`.
+/// Only the q and r axes are stored and we calculate the s when we need to.
+///
+/// The coordinate system is similar but not fully analogus to cartesian 3D X, Y, Z.
 #[derive(PartialEq, Debug, Copy, Clone, Default)]
 pub struct Axial {
     pub q: i32,
@@ -15,6 +23,7 @@ impl From<Axial> for (i32, i32) {
     }
 }
 
+/// Helper macro to create [`Axial`] structs.
 #[macro_export]
 macro_rules! axial {
     ($q:expr, $r:expr) => {
@@ -23,7 +32,9 @@ macro_rules! axial {
 }
 pub use axial;
 
-//Positive Q denotes forward vector
+/// Describes a direction.
+///
+/// Positive q is the forward vector for a tile, meaning these directions are in relation to that.
 #[derive(PartialEq, Eq, Debug)]
 pub enum HexDirection {
     Front,
@@ -62,6 +73,19 @@ impl From<HexDirection> for i32 {
 }
 
 impl HexDirection {
+    /// Converts a HexDirection to an [`Axial`] unit vector.
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::*;
+    ///
+    /// // Creates a unit vector of (1, 0)
+    /// let front_uv = HexDirection::to_movement_vector(&HexDirection::Front);
+    ///
+    /// // Creates a unit vector of (-1, 1)
+    /// let dir = HexDirection::BackRight;
+    /// let uv = dir.to_movement_vector();
+    /// ```
     pub fn to_movement_vector(&self) -> Axial {
         match self {
             HexDirection::Front => axial!(1, 0),
@@ -74,6 +98,7 @@ impl HexDirection {
     }
 }
 
+/// Represents the three axes of symmetry in hexagons.
 pub enum Axes {
     Q,
     R,
@@ -81,14 +106,58 @@ pub enum Axes {
 }
 
 impl Axial {
+    /// Computes the S component.
+    ///
+    /// Follows the law of `q + r + s = 0`
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::*;
+    /// // Computes the s component where q and r are 1.
+    /// let s = axial!(1, 1).compute_s(); // s will be -2.
+    /// ```
     pub fn compute_s(&self) -> i32 {
         -self.q - self.r
     }
 
+    /// Swizzles the coordinate components left.
+    ///
+    /// Performs an operation of the coordinate components where they all get shifted left as follows;
+    ///
+    /// `q = r`
+    ///
+    /// `r = s`
+    ///
+    /// `s = q`
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::*;
+    ///
+    /// let coordinate = axial!(1, 1); // q = 1, r = 1, s = -2
+    /// let new_coordinate = coordinate.swizzle_l(); // q = 1, r = -2, s = 1
+    /// ```
     pub fn swizzle_l(&self) -> Self {
         axial!(self.r, self.compute_s())
     }
 
+    /// Swizzles the coordinate components right.
+    ///
+    /// Performs an operation of the coordinate components where they all get shifted right as such;
+    ///
+    /// `q = s`
+    ///
+    /// `r = q`
+    ///
+    /// `s = r`
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::*;
+    ///
+    /// let coordinate = axial!(1, 1); // q = 1, r = 1, s = -2
+    /// let new_coordinate = coordinate.swizzle_r(); // q = -2, r = 1, s = 1
+    /// ```
     pub fn swizzle_r(&self) -> Self {
         axial!(self.compute_s(), self.q)
     }

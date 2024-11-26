@@ -1,3 +1,5 @@
+//! Algorithms for an axial coordinate.
+
 use std::ops::Rem;
 
 use crate::axial;
@@ -5,14 +7,57 @@ use crate::axial;
 use super::coordinate::{Axes, Axial, HexDirection};
 
 impl Axial {
-    pub fn make_vector(&self, distance: i32, rot_dir: i32) -> Self {
-        *self + HexDirection::from(rot_dir).to_movement_vector() * distance
+    /// Make a vector from it's components.
+    ///
+    /// Forms a vector from a location, magnitude and direction.
+    ///
+    /// `rot_dir`: positive denotes CW, negative CCW, magnitude denotes how many 60 degree rotations.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::algorithms::*;
+    ///
+    /// // Create a unit vector (1, 0)
+    /// let unit_vector = axial!(0, 0).make_vector(1, 0);
+    ///
+    /// // Create a unit vector (0, 1)
+    /// let unit_vector = axial!(0, 0).make_vector(1, 1);
+    /// ```
+    pub fn make_vector(&self, magnitude: i32, rot_dir: i32) -> Self {
+        *self + HexDirection::from(rot_dir).to_movement_vector() * magnitude
     }
 
+    /// Get a neighbor coordinate given a direction.
+    ///
+    /// See [`HexDirection`] for a reference of directionality.
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::algorithms::*;
+    ///
+    /// // Gets the tile (1, 0)
+    /// let coord = axial!(0, 0).neighbor(HexDirection::Front);
+    /// ```
     pub fn neighbor(&self, direction: HexDirection) -> Self {
         self.make_vector(1, direction.into())
     }
 
+    /// Compute distance between two coordinates.
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::algorithms::*;
+    ///
+    /// // dist will be 2
+    /// let dist = axial!(0, 0).distance(axial!(2, 0));
+    ///
+    /// // dist will be 2
+    /// let dist = Axial::distance(&axial!(-1, 3), axial!(1, 1));
+    /// ```
     pub fn distance(&self, b: Self) -> i32 {
         let vec = *self - b;
         (i32::abs(vec.q) + i32::abs(vec.q + vec.r) + i32::abs(vec.r)) / 2
@@ -23,8 +68,18 @@ impl Axial {
         a as f64 + (b - a) as f64 * t
     }
 
-    // This algorithm is based on the round function by Jacob Rus
-    // https://observablehq.com/@jrus/hexround
+    /// Rounds a floating hex coordinate to an integer coordinate.
+    ///
+    /// This algorithm is based on the round function by Jacob Rus
+    /// <https://observablehq.com/@jrus/hexround>
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::algorithms::*;
+    ///
+    /// let coord = Axial::round((1.6, 3.2));
+    /// ```
     pub fn round(fcoord: (f64, f64)) -> Self {
         let qgrid = fcoord.0.round();
         let rgrid = fcoord.1.round();
@@ -41,13 +96,34 @@ impl Axial {
         }
     }
 
-    // Calculate nearest hex along time t
+    /// Perferms linear interpolation between two coordinates.
+    ///
+    /// Given time `t`, or a percentage, calculate an inbetween value along the line.
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::algorithms::*;
+    ///
+    /// // The coordinate 30% of the way to (3, 0) is (1, 0)
+    /// let coord = axial!(0, 0).lerp(axial!(3, 0), 0.3);
+    /// ```
     pub fn lerp(&self, b: Self, t: f64) -> Self {
         let q = Self::lerp_internal(self.q, b.q, t);
         let r = Self::lerp_internal(self.r, b.r, t);
         Self::round((q, r))
     }
 
+    /// Calculate all the coordinates that form a line between two points.
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::algorithms::*;
+    ///
+    /// // coords will contain (0, 0) (1, 0) and (2, 0)
+    /// let coords = axial!(0, 0).line(axial!(2, 0));
+    /// ```
     pub fn line(&self, b: Self) -> Vec<Self> {
         let dist = self.distance(b);
         let mut ret = vec![];
@@ -61,6 +137,16 @@ impl Axial {
         ret
     }
 
+    /// Calculate all the coordinates within a range.
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::algorithms::*;
+    ///
+    /// // coords will contain all the neighbors of (0, 0)
+    /// let coords = axial!(0, 0).range(1);
+    /// ```
     pub fn range(&self, range: i32) -> Vec<Self> {
         let mut ret = vec![];
 
@@ -74,6 +160,27 @@ impl Axial {
     }
 
     // center: Option<Self> denotes a point to reflect about. If provided None, coordinate (0,0) will be used.
+    /// Reflect a coordinate across an axis of symmetry.
+    ///
+    /// `center` can be provided to specify a specific point to reflect across. Otherwise, (0, 0) will be used.
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::algorithms::*;
+    ///
+    /// // reflected will be the coordinate (-1, 0)
+    /// let reflected = axial!(1, 0).reflect(None, Axes::Q);
+    ///
+    /// // reflected will be the coordinate (1, 0)
+    /// let reflected = axial!(1, 0).reflect(None, Axes::R);
+    ///
+    /// // reflected will be the coordinate (0, 1)
+    /// let reflected = axial!(1, 0).reflect(None, Axes::S);
+    ///
+    /// // reflected will be the coordinate (0, 2)
+    /// let reflected = axial!(0, 0).reflect(Some(axial!(0, 1)), Axes::Q);
+    /// ```
     pub fn reflect(&self, center: Option<Self>, axes: Axes) -> Self {
         let center = match center {
             Some(c) => c,
@@ -101,7 +208,23 @@ impl Axial {
         }
     }
 
-    // Positive dir means CW, negative CCW, and magnitude denotes how many 60 degree rotations in that direction.
+    /// Rotate a coordinate.
+    ///
+    /// `center` Optionally can specify a point to rotate about. None will rotate about (0, 0).
+    ///
+    /// `rot_dir`: positive denotes CW, negative CCW, magnitude denotes how many 60 degree rotations.
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::algorithms::*;
+    ///
+    /// // coord will be (0, 1)
+    /// let coord = axial!(1, 0).rotate(None, 1);
+    ///
+    /// // coord will be (2, -1)
+    /// let coord = axial!(1, 0).rotate(Some(axial!(2, 0)), 1);
+    /// ```
     pub fn rotate(&self, center: Option<Self>, rot_dir: i32) -> Self {
         let center = match center {
             Some(c) => c,

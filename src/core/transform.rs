@@ -1,75 +1,84 @@
 use std::ops::{Add, AddAssign, Mul, MulAssign, Neg};
 
-// Transform TODO:
-//      - Implement methods of combining transforms such as trans1 + trans2
-//      - Implement rotation helper functions/rotation struct.
-
+/// A 2-dimensional vector.
 #[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
-pub struct Float2D<T> {
+pub struct Vector2D<T> {
+    /// x axis
     pub x: T,
+    /// y axis
     pub y: T,
 }
 
+/// Helper macro to quickly instantiate a [`Vector2D`].
 #[macro_export]
-macro_rules! float2d {
+macro_rules! vector2d {
     ($x:expr) => {
-        Float2D { x: $x, y: $x }
+        Vector2D { x: $x, y: $x }
     };
 
     ($x:expr, $y:expr) => {
-        Float2D { x: $x, y: $y }
+        Vector2D { x: $x, y: $y }
     };
 }
-pub use float2d;
+pub use vector2d;
 
-impl<T> Float2D<T> {}
-
-impl<T: AddAssign> AddAssign for Float2D<T> {
+impl<T: AddAssign> AddAssign for Vector2D<T> {
     fn add_assign(&mut self, rhs: Self) {
         self.x += rhs.x;
         self.y += rhs.y;
     }
 }
 
-impl<T: MulAssign> MulAssign for Float2D<T> {
+impl<T: MulAssign> MulAssign for Vector2D<T> {
     fn mul_assign(&mut self, rhs: Self) {
         self.x *= rhs.x;
         self.y *= rhs.y;
     }
 }
 
-impl<T: Add<Output = T> + Copy> Add for Float2D<T> {
+impl<T: Add<Output = T> + Copy> Add for Vector2D<T> {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        float2d!(self.x + rhs.x, self.y + rhs.y)
+        vector2d!(self.x + rhs.x, self.y + rhs.y)
     }
 }
 
-impl<T: Neg<Output = T>> Neg for Float2D<T> {
+impl<T: Neg<Output = T>> Neg for Vector2D<T> {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
-        float2d!(-self.x, -self.y)
+        vector2d!(-self.x, -self.y)
     }
 }
 
-// Transformation matrix data structure.
-// Stores information to manipulate a coordinate in space.
+/// Transformation matrix data structure.
+///
+/// Stores translation, rotation and scale data to be able to perform operations with.
 #[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
 pub struct Transform<T: Copy + AddAssign> {
+    /// Movement away from the origin.
     pub translation: T,
-    pub rotation: i32,       // rotation around z-axis; positive CW, negative CCW
-    pub scale: Float2D<f32>, // Can this be a coordinate or even a tuple of floats and not a i32?
+    /// Rotation of the object around the z-axis. Positive CW, negative CCW
+    pub rotation: i32,
+    /// 2D scale of an object.
+    pub scale: Vector2D<f32>, // Can this be a coordinate or even a tuple of floats and not a i32?
 }
 
+/// Helper macro to create [`Transform`].
+///
+/// Accepts 1, 2, or 3 arguments
+///
+/// - 1 => translation.
+/// - 2 => translation, rotation.
+/// - 3 => translation, rotation, scale.
 #[macro_export]
 macro_rules! transform {
     ($t:expr) => {
         Transform {
             translation: $t,
             rotation: 0,
-            scale: float2d!(1.0),
+            scale: vector2d!(1.0),
         }
     };
 
@@ -77,7 +86,7 @@ macro_rules! transform {
         Transform {
             translation: $t,
             rotation: $r,
-            scale: float2d!(1.0, 1.0),
+            scale: vector2d!(1.0, 1.0),
         }
     };
 
@@ -93,17 +102,22 @@ pub use transform;
 
 // Default trait implementation.
 // Uses default traits of internals except for scale, scale is defaulted to 1.
+/// Default trait implementation
+///
+/// See [`Default`] for base implementation.
+///
+/// We manually set scale to a default of 1 because at base scale * size should not do anything
+/// which is the multiplicative identity 1.
 impl<T: Copy + AddAssign + Default> Default for Transform<T> {
     fn default() -> Self {
         Self {
             translation: Default::default(),
             rotation: Default::default(),
-            scale: float2d!(1.0),
+            scale: vector2d!(1.0),
         }
     }
 }
 
-// Overloading '+' operator to facilitate combining multiple transforms.
 impl<T> Add<Transform<T>> for Transform<T>
 where
     T: Copy + AddAssign + Add<T, Output = T>,
@@ -119,7 +133,6 @@ where
     }
 }
 
-// Overloading '-' operator to create an inverse transform
 impl<T> Neg for Transform<T>
 where
     T: Copy + AddAssign + Mul<i32, Output = T>,
@@ -141,50 +154,50 @@ mod tests {
 
     #[test]
     fn add_assign() {
-        let mut f2d = float2d!(2, 3);
-        f2d += float2d!(4, 5);
-        assert_eq!(f2d, float2d!(6, 8));
+        let mut f2d = vector2d!(2, 3);
+        f2d += vector2d!(4, 5);
+        assert_eq!(f2d, vector2d!(6, 8));
     }
 
     #[test]
     fn mul_assign() {
-        let mut f2d = float2d!(2, 3);
-        f2d *= float2d!(4, 5);
-        assert_eq!(f2d, float2d!(8, 15));
+        let mut f2d = vector2d!(2, 3);
+        f2d *= vector2d!(4, 5);
+        assert_eq!(f2d, vector2d!(8, 15));
     }
 
     #[test]
     fn add() {
-        assert_eq!(float2d!(2, 3) + float2d!(4, 5), float2d!(6, 8));
+        assert_eq!(vector2d!(2, 3) + vector2d!(4, 5), vector2d!(6, 8));
     }
 
     #[test]
     fn neg() {
-        assert_eq!(-float2d!(-2), float2d!(2));
+        assert_eq!(-vector2d!(-2), vector2d!(2));
     }
 
     #[test]
     fn create_transform() {
-        assert_eq!(Transform::default(), transform!(0, 0, float2d!(1.0, 1.0)));
-        assert_eq!(transform!(2), transform!(2, 0, float2d!(1.0, 1.0)));
-        assert_eq!(transform!(2, 4), transform!(2, 4, float2d!(1.0, 1.0)));
+        assert_eq!(Transform::default(), transform!(0, 0, vector2d!(1.0, 1.0)));
+        assert_eq!(transform!(2), transform!(2, 0, vector2d!(1.0, 1.0)));
+        assert_eq!(transform!(2, 4), transform!(2, 4, vector2d!(1.0, 1.0)));
     }
 
     #[test]
     fn add_transform() {
-        let trans = transform!(0, 0, float2d!(1.0, 1.0));
+        let trans = transform!(0, 0, vector2d!(1.0, 1.0));
 
         assert_eq!(
-            trans.add(transform!(1, 2, float2d!(0.5, 1.5))),
-            transform!(1, 2, float2d!(1.5, 2.5))
+            trans.add(transform!(1, 2, vector2d!(0.5, 1.5))),
+            transform!(1, 2, vector2d!(1.5, 2.5))
         );
     }
 
     #[test]
     fn neg_transform() {
         assert_eq!(
-            -transform!(2, 6, float2d!(2.0, 3.0)),
-            transform!(-2, -6, float2d!(-2.0, -3.0)),
+            -transform!(2, 6, vector2d!(2.0, 3.0)),
+            transform!(-2, -6, vector2d!(-2.0, -3.0)),
         );
     }
 }
