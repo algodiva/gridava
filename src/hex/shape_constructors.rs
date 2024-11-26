@@ -110,7 +110,7 @@ impl Inequality {
 /// let my_shape = shape_constructors::make_shape(&shape_verts, || Tile::new(Some(1)));
 /// ```
 ///
-/// The algorithm *WILL* calculate it's inequalities on EVERY point in the array. So, in example, if you have a point
+/// The algorithm *WILL* calculate its inequalities on EVERY point in the array. So, in example, if you have a point
 /// inside a shape, that point will still be calculated but will not change anything about the resultant inequality.
 pub fn make_shape<T, F>(points: &[Axial], mut constructor: F) -> HexShape<T>
 where

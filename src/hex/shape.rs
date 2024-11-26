@@ -50,7 +50,7 @@ impl<T: Clone> HexShape<T> {
     /// use gridava::hex::shape::HexShape;
     ///
     /// let mut my_shape: HexShape<i32> = HexShape::new(None, None);
-    /// /// Move the shape in the positive q and r by 1.
+    /// /// Move the shape in the positive q and r axes by 1.
     /// my_shape.translate(axial!(1, 1));
     /// ```
     pub fn translate(&mut self, coord: Axial) -> &Self {
@@ -79,7 +79,7 @@ impl<T: Clone> HexShape<T> {
         self
     }
 
-    /// Rotates the shape, either about it's local origin or some point.
+    /// Rotates the shape, either about its local origin or some point.
     ///
     /// Mutates the transform of the shape.
     ///
@@ -115,7 +115,7 @@ impl<T: Clone> HexShape<T> {
     /// my_shape.scale(vector2d!(2.0, 2.0));
     /// ```
     pub fn scale(&mut self, scale: Vector2D<f32>) -> &Self {
-        // Uses bilinear interpolation algorithm, it's lossless  meaning if you apply a scale and then it's inverse
+        // Uses bilinear interpolation algorithm, it's lossless  meaning if you apply a scale and then its inverse
         //  it will return to it's original shape.
 
         let shape = self.shape.shape();

@@ -122,7 +122,7 @@ impl Axial {
 
     /// Swizzles the coordinate components left.
     ///
-    /// Performs an operation of the coordinate components where they all get shifted left as such;
+    /// Performs an operation of the coordinate components where they all get shifted left as follows;
     ///
     /// `q = r`
     ///

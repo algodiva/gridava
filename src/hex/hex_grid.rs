@@ -20,7 +20,7 @@ pub const SQRT_3: f64 = 1.732050807568877293527446341505872367_f64;
 
 /// A grid of tiles.
 ///
-/// This entity owns the tiles in it's coordinate system.
+/// This entity owns the tiles in its coordinate system.
 ///
 /// Contains useful functions to convert to and from world space and grid coordinates.
 #[derive(Debug, Clone)]
