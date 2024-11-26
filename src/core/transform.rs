@@ -52,8 +52,6 @@ impl<T: Neg<Output = T>> Neg for Vector2D<T> {
     }
 }
 
-// Transformation matrix data structure.
-// Stores information to manipulate a coordinate in space.
 /// Transformation matrix data structure.
 ///
 /// Stores translation, rotation and scale data to be able to perform operations with.
