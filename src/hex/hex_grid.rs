@@ -1,9 +1,12 @@
+//! The entity that owns tiles.
+
 use std::collections::HashMap;
 
 use coordinate::Axial;
 
 use super::*;
 
+/// Enum denoting orientation of hexagons in a grid.
 #[derive(Debug, Clone, PartialEq)]
 pub enum HexOrientation {
     FlatTop,
@@ -11,9 +14,15 @@ pub enum HexOrientation {
 }
 
 // Because Rust has determined to hide a constant behind an 'unstable' tag we restate it here.
+/// Constant calculation of square root of 3.
 #[allow(clippy::excessive_precision)]
 pub const SQRT_3: f64 = 1.732050807568877293527446341505872367_f64;
 
+/// A grid of tiles.
+///
+/// This entity owns the tiles in it's coordinate system.
+///
+/// Contains useful functions to convert to and from world space and grid coordinates.
 #[derive(Debug, Clone)]
 pub struct HexGrid<TileType> {
     pub orientation: HexOrientation,
@@ -32,7 +41,22 @@ impl<TileType> Default for HexGrid<TileType> {
 }
 
 impl<TileType> HexGrid<TileType> {
-    // uses point-top. Need to get conversion for flat top
+    /// Convert from worldspace to hex coordinates.
+    ///
+    /// Takes in a float 64 tuple of the form (x, y) and outputs the coordinates of the nearest tile.
+    ///
+    /// # Example
+    /// ```
+    /// let my_object_pos = (100.0, 432.0);
+    /// /// ...
+    /// use gridava::hex::hex_grid::*;
+    ///
+    /// let my_grid = HexGrid::<i32>::default();
+    /// let nearest_tile = my_grid.world_to_hex(my_object_pos);
+    /// ```
+    ///
+    /// The parent world space can be anything not just a 'game world.' For instance, the screen width and height could be your worldspace.
+    /// The grid could even exist in a 3d space and your world's x and y component used.
     pub fn world_to_hex(&self, worldspace: (f64, f64)) -> Axial {
         use crate::axial;
 
@@ -62,7 +86,22 @@ impl<TileType> HexGrid<TileType> {
         }
     }
 
-    // uses pointy-top. Need to get conversion for flat top
+    /// Convert from hex to worldspace coordinates.
+    ///
+    /// Takes in a hex coordinate and outputs the worldspace coordinates of the tile's center.
+    ///
+    /// # Example
+    /// ```
+    /// /// ...
+    /// use gridava::hex::hex_grid::*;
+    /// use gridava::hex::coordinate::*;
+    ///
+    /// let my_grid = HexGrid::<i32>::default();
+    /// let world_pos = my_grid.hex_to_world(axial!(12, 33));
+    /// ```
+    ///
+    /// The parent world space can be anything not just a 'game world.' For instance, the screen width and height could be your worldspace.
+    /// The grid could even exist in a 3d space and your world's x and y component used.
     pub fn hex_to_world(&self, coord: Axial) -> (f64, f64) {
         match self.orientation {
             HexOrientation::PointyTop => {
