@@ -154,7 +154,7 @@ impl<T: Clone> HexShape<T> {
     ///
     /// Given a size and direction, see [`ShapeArgs`], this will create a line.
     ///
-    /// see [`make_shape`] for more.
+    /// see [`Self::make_shape`] for more.
     ///
     /// ```
     /// use gridava::core::tile::Tile;
@@ -178,7 +178,7 @@ impl<T: Clone> HexShape<T> {
     ///
     /// Given a size and direction, see [`ShapeArgs`], this will create a triangle.
     ///
-    /// see [`make_shape`] for more.
+    /// see [`Self::make_shape`] for more.
     ///
     /// ```
     /// use gridava::core::tile::Tile;
@@ -204,7 +204,7 @@ impl<T: Clone> HexShape<T> {
     ///
     /// Given a size and direction, see [`ShapeArgs`], this will create a rhombus.
     ///
-    /// see [`make_shape`] for more.
+    /// see [`Self::make_shape`] for more.
     ///
     /// ```
     /// use gridava::core::tile::Tile;
