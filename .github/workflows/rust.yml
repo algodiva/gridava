@@ -37,7 +37,7 @@ jobs:
     - uses: taiki-e/install-action@cargo-llvm-cov
 
     - name: Tests
-      run: cargo llvm-cov --no-fail-fast -all-features --cobertura > coverage.xml
+      run: cargo llvm-cov --no-fail-fast --all-features --cobertura > coverage.xml
 
     - name: Codecov
       uses: codecov/codecov-action@v4
