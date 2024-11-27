@@ -13,11 +13,15 @@ use crate::{
 
 use super::coordinate::Axial;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// A shape is a collection of coordinates.
 ///
 /// Each coordinate is a vector that 'points' to the origin coordinate creating a shape local space.
 /// The transformation matrix associated to the shape is then used to convert this local space to the
 /// coordinate space of the parent.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, PartialEq, Debug, Default)]
 pub struct HexShape<T: Clone> {
     shape: Array2<Tile<T>>, // 2D array of tiles, index corresponds to coordinate (q, r). Origin of (0,0) to (+∞,+∞).

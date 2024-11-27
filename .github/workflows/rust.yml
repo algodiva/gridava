@@ -35,4 +35,4 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Tests
-      run: cargo test --no-fail-fast
+      run: cargo test --no-fail-fast --all-features

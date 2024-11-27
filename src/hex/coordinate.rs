@@ -5,13 +5,17 @@ use std::{
     ops::{Add, AddAssign, Div, Mul, Neg, Rem, Sub, SubAssign},
 };
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// Axial based coordinates for hexagon grids.
 ///
 /// This coordinate system follows the law that `q + r + s = 0`.
 /// Only the q and r axes are stored and we calculate the s when we need to.
 ///
 /// The coordinate system is similar but not fully analogus to cartesian 3D X, Y, Z.
-#[derive(PartialEq, Debug, Copy, Clone, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(PartialEq, Eq, Copy, Clone, Hash, Debug, Default)]
 pub struct Axial {
     pub q: i32,
     pub r: i32,

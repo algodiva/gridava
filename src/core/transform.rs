@@ -1,6 +1,10 @@
 use std::ops::{Add, AddAssign, Mul, MulAssign, Neg};
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// A 2-dimensional vector.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
 pub struct Vector2D<T> {
     /// x axis
@@ -55,6 +59,7 @@ impl<T: Neg<Output = T>> Neg for Vector2D<T> {
 /// Transformation matrix data structure.
 ///
 /// Stores translation, rotation and scale data to be able to perform operations with.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
 pub struct Transform<T: Copy + AddAssign> {
     /// Movement away from the origin.

@@ -1,6 +1,7 @@
 //! Tiles are represented by this struct in the library.
 
-use std::rc::Rc;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 /// The tile used by this library.
 ///
@@ -19,15 +20,16 @@ use std::rc::Rc;
 /// /// or
 /// let my_tile = Tile::new(Some(MyData { custom_field: 1 }));
 /// ```
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, PartialEq, Debug)]
 pub struct Tile<T: Clone> {
-    pub data: Option<Rc<T>>,
+    pub data: Option<Box<T>>,
 }
 
 impl<T: Default + Clone> Tile<T> {
     pub fn new(data: Option<T>) -> Tile<T> {
         Tile {
-            data: data.map(|value| Rc::new(value)),
+            data: data.map(|value| Box::new(value)),
         }
     }
 }
