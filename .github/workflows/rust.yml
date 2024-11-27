@@ -34,7 +34,6 @@ jobs:
 
     steps:
     - name: Tests
-      uses: actions/checkout@v4
       run: cargo test --no-fail-fast --all-features
 
     - name: Codecov
