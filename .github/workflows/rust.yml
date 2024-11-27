@@ -33,6 +33,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
     - name: Tests
+      uses: actions/checkout@v4
       run: cargo test --no-fail-fast --all-features
+
+    - name: Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKIEN }}
+        slug: algodiva/gridava
