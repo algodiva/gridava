@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use axial::Axial;
+use coordinate::Axial;
 
 use super::*;
 
@@ -94,7 +94,7 @@ impl<TileType> HexGrid<TileType> {
     /// ```
     /// /// ...
     /// use gridava::hex::grid::*;
-    /// use gridava::hex::axial::*;
+    /// use gridava::hex::coordinate::*;
     ///
     /// let my_grid = HexGrid::<i32>::default();
     /// let world_pos = my_grid.hex_to_world(axial!(12, 33));

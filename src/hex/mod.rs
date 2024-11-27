@@ -2,6 +2,6 @@
 //!
 //! TODO: Examples.
 //!
-pub mod axial;
+pub mod coordinate;
 pub mod grid;
 pub mod shape;
