@@ -54,7 +54,7 @@ impl<TileType> HexGrid<TileType> {
     /// ```
     /// let my_object_pos = (100.0, 432.0);
     /// /// ...
-    /// use gridava::hex::hex_grid::*;
+    /// use gridava::hex::grid::HexGrid;
     ///
     /// let my_grid = HexGrid::<i32>::default();
     /// let nearest_tile = my_grid.world_to_hex(my_object_pos);
@@ -98,8 +98,8 @@ impl<TileType> HexGrid<TileType> {
     /// # Example
     /// ```
     /// /// ...
-    /// use gridava::hex::hex_grid::*;
-    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::grid::HexGrid;
+    /// use gridava::hex::coordinate::{Axial, axial};
     ///
     /// let my_grid = HexGrid::<i32>::default();
     /// let world_pos = my_grid.hex_to_world(axial!(12, 33));
