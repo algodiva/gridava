@@ -310,7 +310,7 @@ impl<T: Clone> HexShape<T> {
     /// ```
     pub fn scale(&mut self, scale: Vector2D<f32>) -> &Self {
         // Uses bilinear interpolation algorithm, it's lossless  meaning if you apply a scale and then its inverse
-        //  it will return to it's original shape.
+        //  it will return to its original shape.
 
         let shape = self.shape.shape();
 

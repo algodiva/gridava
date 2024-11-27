@@ -166,7 +166,7 @@ impl Axial {
         axial!(self.compute_s(), self.q)
     }
 
-    /// Make a vector from it's components.
+    /// Make a vector from its components.
     ///
     /// Forms a vector from a location, magnitude and direction.
     ///
