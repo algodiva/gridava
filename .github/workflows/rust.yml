@@ -34,9 +34,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - uses: taiki-e/install-action@cargo-llvm-cov
 
     - name: Tests
-      uses: taiki-e/install-action@cargo-llvm-cov
       run: cargo llvm-cov --no-fail-fast -all-features --cobertura > coverage.xml
 
     - name: Codecov
