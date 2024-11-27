@@ -80,8 +80,8 @@ impl<T: Clone> HexShape<T> {
     ///
     /// ```
     /// use gridava::core::tile::Tile;
-    /// use gridava::hex::coordinate::*;
-    /// use gridava::hex::shape::*;
+    /// use gridava::hex::coordinate::{Axial, axial};
+    /// use gridava::hex::shape::HexShape;
     ///
     /// /// shape_verts stores a triangle of size 1
     /// let shape_verts = vec![axial!(0, 0), axial!(0, 1), axial!(1, 0)];
@@ -162,7 +162,7 @@ impl<T: Clone> HexShape<T> {
     ///
     /// ```
     /// use gridava::core::tile::Tile;
-    /// use gridava::hex::shape::*;
+    /// use gridava::hex::shape::{HexShape, ShapeArgs, shapeargs};
     ///
     /// /// Creates a line of size 1, 0-1 inclusive, and sets the tiles to Some(1)
     /// let my_shape = HexShape::make_line(shapeargs!(1, 0, true), || Tile::new(Some(1)));
@@ -186,7 +186,7 @@ impl<T: Clone> HexShape<T> {
     ///
     /// ```
     /// use gridava::core::tile::Tile;
-    /// use gridava::hex::shape::*;
+    /// use gridava::hex::shape::{HexShape, ShapeArgs, shapeargs};
     ///
     /// /// Creates a triangle of size 1, 0-1 inclusive, and sets the tiles to Some(1)
     /// let my_shape = HexShape::make_triangle(shapeargs!(1, 0, true), || Tile::new(Some(1)));
@@ -212,7 +212,7 @@ impl<T: Clone> HexShape<T> {
     ///
     /// ```
     /// use gridava::core::tile::Tile;
-    /// use gridava::hex::shape::*;
+    /// use gridava::hex::shape::{HexShape, ShapeArgs, shapeargs};
     ///
     /// /// Creates a rhombus of size 1, 0-1 inclusive, and sets the tiles to Some(1)
     /// let my_shape = HexShape::make_rhombus(shapeargs!(1, 0, true), || Tile::new(Some(1)));
@@ -240,7 +240,7 @@ impl<T: Clone> HexShape<T> {
     /// Mutates the transform of the shape.
     ///
     /// ```
-    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::coordinate::{Axial, axial};
     /// use gridava::hex::shape::HexShape;
     ///
     /// let mut my_shape: HexShape<i32> = HexShape::new(None, None);
@@ -259,7 +259,7 @@ impl<T: Clone> HexShape<T> {
     /// `rot_dir`: positive denotes CW, negative CCW, magnitude denotes how many 60 degree rotations.
     ///
     /// ```
-    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::coordinate::{Axial, axial};
     /// use gridava::hex::shape::HexShape;
     ///
     /// /// The shape has an origin of (0, 0)
@@ -282,7 +282,7 @@ impl<T: Clone> HexShape<T> {
     /// `rot_dir`: positive denotes CW, negative CCW, magnitude denotes how many 60 degree rotations.
     /// ```
     /// use gridava::hex::shape::HexShape;
-    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::coordinate::{Axial, axial};
     ///
     /// /// Rotate the shape about the coordinate (1, 1) clockwise.
     /// HexShape::<i32>::new(None, None).rotate(Some(axial!(1, 1)), 1);
@@ -345,7 +345,7 @@ impl<T: Clone> HexShape<T> {
     /// Returns a vector of [`Axial`] denoting coordinates the shape contains.
     ///
     /// ```
-    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::coordinate::Axial;
     /// use gridava::hex::shape::HexShape;
     /// use gridava::core::tile::Tile;
     /// use ndarray::array;

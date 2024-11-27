@@ -81,7 +81,7 @@ impl HexDirection {
     ///
     /// # Example
     /// ```
-    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::coordinate::{Axial, HexDirection,axial};
     ///
     /// // Creates a unit vector of (1, 0)
     /// let front_uv = HexDirection::to_movement_vector(&HexDirection::Front);
@@ -116,7 +116,7 @@ impl Axial {
     ///
     /// # Example
     /// ```
-    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::coordinate::{Axial, axial};
     /// // Computes the s component where q and r are 1.
     /// let s = axial!(1, 1).compute_s(); // s will be -2.
     /// ```
@@ -136,7 +136,7 @@ impl Axial {
     ///
     /// # Example
     /// ```
-    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::coordinate::{Axial, axial};
     ///
     /// let coordinate = axial!(1, 1); // q = 1, r = 1, s = -2
     /// let new_coordinate = coordinate.swizzle_l(); // q = 1, r = -2, s = 1
@@ -157,7 +157,7 @@ impl Axial {
     ///
     /// # Example
     /// ```
-    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::coordinate::{Axial, axial};
     ///
     /// let coordinate = axial!(1, 1); // q = 1, r = 1, s = -2
     /// let new_coordinate = coordinate.swizzle_r(); // q = -2, r = 1, s = 1
@@ -175,7 +175,7 @@ impl Axial {
     /// # Example
     ///
     /// ```
-    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::coordinate::{Axial, axial};
     ///
     /// // Create a unit vector (1, 0)
     /// let unit_vector = axial!(0, 0).make_vector(1, 0);
@@ -193,7 +193,7 @@ impl Axial {
     ///
     /// # Example
     /// ```
-    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::coordinate::{Axial, HexDirection, axial};
     ///
     /// // Gets the tile (1, 0)
     /// let coord = axial!(0, 0).neighbor(HexDirection::Front);
@@ -206,7 +206,7 @@ impl Axial {
     ///
     /// # Example
     /// ```
-    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::coordinate::{Axial, axial};
     ///
     /// // dist will be 2
     /// let dist = axial!(0, 0).distance(axial!(2, 0));
@@ -231,7 +231,7 @@ impl Axial {
     ///
     /// # Example
     /// ```
-    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::coordinate::{Axial, axial};
     ///
     /// let coord = Axial::round((1.6, 3.2));
     /// ```
@@ -257,7 +257,7 @@ impl Axial {
     ///
     /// # Example
     /// ```
-    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::coordinate::{Axial, axial};
     ///
     /// // The coordinate 30% of the way to (3, 0) is (1, 0)
     /// let coord = axial!(0, 0).lerp(axial!(3, 0), 0.3);
@@ -272,7 +272,7 @@ impl Axial {
     ///
     /// # Example
     /// ```
-    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::coordinate::{Axial, axial};
     ///
     /// // coords will contain (0, 0) (1, 0) and (2, 0)
     /// let coords = axial!(0, 0).line(axial!(2, 0));
@@ -294,7 +294,7 @@ impl Axial {
     ///
     /// # Example
     /// ```
-    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::coordinate::{Axial, axial};
     ///
     /// // coords will contain all the neighbors of (0, 0)
     /// let coords = axial!(0, 0).range(1);
@@ -318,7 +318,7 @@ impl Axial {
     ///
     /// # Example
     /// ```
-    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::coordinate::{Axial, Axes, axial};
     ///
     /// // reflected will be the coordinate (-1, 0)
     /// let reflected = axial!(1, 0).reflect(None, Axes::Q);
@@ -367,7 +367,7 @@ impl Axial {
     ///
     /// # Example
     /// ```
-    /// use gridava::hex::coordinate::*;
+    /// use gridava::hex::coordinate::{Axial, axial};
     ///
     /// // coord will be (0, 1)
     /// let coord = axial!(1, 0).rotate(None, 1);
