@@ -1,13 +1,10 @@
 //! Shapes in a hex grid.
 
-use ndarray::{Array, Array2, ArrayView2};
+use ndarray::{array, Array, Array2};
 
 use crate::{
     axial,
-    core::{
-        tile::Tile,
-        transform::{Transform, Vector2D},
-    },
+    core::transform::{Transform, Vector2D},
     transform, vector2d,
 };
 
@@ -24,7 +21,7 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, PartialEq, Debug, Default)]
 pub struct HexShape<T: Clone> {
-    shape: Array2<Tile<T>>, // 2D array of tiles, index corresponds to coordinate (q, r). Origin of (0,0) to (+∞,+∞).
+    shape: Array2<Option<T>>, // 2D array of tiles, index corresponds to coordinate (q, r). Origin of (0,0) to (+∞,+∞).
     pub transform: Transform<Axial>, // The transformation matrix to convert from parent grid to local space.
 }
 
@@ -56,19 +53,19 @@ impl<T: Clone> HexShape<T> {
     /// Create a new shape.
     ///
     /// Can be provided with optional parameters to specify coordinates it occupies
-    /// and its transform. These will default to none and (0, 0) respectively.
+    /// and its transform. These will default to empty and (0, 0) respectively.
     ///
     /// ```
     /// use gridava::hex::shape::HexShape;
     ///
     /// let my_shape: HexShape<i32> = HexShape::new(None, None);
     /// ```
-    pub fn new(hex_array: Option<Array2<Tile<T>>>, transform: Option<Transform<Axial>>) -> Self
-    where
-        T: Default,
-    {
+    pub fn new(shape: Option<Array2<Option<T>>>, transform: Option<Transform<Axial>>) -> Self {
         Self {
-            shape: hex_array.unwrap_or_default(),
+            shape: match shape {
+                Some(arr) => arr,
+                None => array![[], []],
+            },
             transform: transform.unwrap_or_default(),
         }
     }
@@ -90,10 +87,9 @@ impl<T: Clone> HexShape<T> {
     ///
     /// The algorithm *WILL* calculate its inequalities on EVERY point in the array. So, in example, if you have a point
     /// inside a shape, that point will still be calculated but will not change anything about the resultant inequality.
-    pub fn make_shape<F>(points: &[Axial], square_bb: bool, mut constructor: F) -> HexShape<T>
+    pub fn make_shape<F>(points: &[Axial], square_bb: bool, mut constructor: F) -> Self
     where
-        T: Clone + Default,
-        F: FnMut() -> Tile<T>,
+        F: FnMut() -> T,
     {
         // We cannot construct a shape with no points, return an empty shape.
         if points.is_empty() {
@@ -144,11 +140,11 @@ impl<T: Clone> HexShape<T> {
         };
 
         // Create our array.
-        let mut arr = Array::from_shape_simple_fn(size, &Tile::default);
+        let mut arr = Array::from_shape_simple_fn(size, || None);
 
         // Construct tiles that the shape contains.
         for coord in hexes {
-            arr[[coord.q as usize, coord.r as usize]] = constructor();
+            arr[[coord.q as usize, coord.r as usize]] = Some(constructor());
         }
 
         HexShape::new(Some(arr), Some(transform))
@@ -167,15 +163,14 @@ impl<T: Clone> HexShape<T> {
     /// /// Creates a line of size 1, 0-1 inclusive, and sets the tiles to Some(1)
     /// let my_shape = HexShape::make_line(shapeargs!(1, 0, true), || Tile::new(Some(1)));
     /// ```
-    pub fn make_line<F>(args: ShapeArgs, constructor: F) -> HexShape<T>
+    pub fn make_line<F>(size: u32, rot_dir: i32, square_bb: bool, constructor: F) -> Self
     where
-        T: Clone + Default,
-        F: FnMut() -> Tile<T>,
+        F: FnMut() -> T,
     {
         // Working in local space
         let vertex_a = axial!(0, 0);
-        let vertex_b = vertex_a.make_vector(args.size as i32, args.rot_dir);
-        Self::make_shape(&[vertex_a, vertex_b], args.square_bb, constructor)
+        let vertex_b = vertex_a.make_vector(size as i32, rot_dir);
+        Self::make_shape(&[vertex_a, vertex_b], square_bb, constructor)
     }
 
     /// Create a triangle shape.
@@ -191,17 +186,16 @@ impl<T: Clone> HexShape<T> {
     /// /// Creates a triangle of size 1, 0-1 inclusive, and sets the tiles to Some(1)
     /// let my_shape = HexShape::make_triangle(shapeargs!(1, 0, true), || Tile::new(Some(1)));
     /// ```
-    pub fn make_triangle<F>(args: ShapeArgs, constructor: F) -> HexShape<T>
+    pub fn make_triangle<F>(size: u32, rot_dir: i32, square_bb: bool, constructor: F) -> Self
     where
-        T: Clone + Default,
-        F: FnMut() -> Tile<T>,
+        F: FnMut() -> T,
     {
         // Working in local space
         let vertex_a = axial!(0, 0);
-        let vertex_b = vertex_a.make_vector(args.size as i32, args.rot_dir);
-        let vertex_c = vertex_a.make_vector(args.size as i32, args.rot_dir + 1);
+        let vertex_b = vertex_a.make_vector(size as i32, rot_dir);
+        let vertex_c = vertex_a.make_vector(size as i32, rot_dir + 1);
 
-        Self::make_shape(&[vertex_a, vertex_b, vertex_c], args.square_bb, constructor)
+        Self::make_shape(&[vertex_a, vertex_b, vertex_c], square_bb, constructor)
     }
 
     /// Create a rhombus shape.
@@ -217,20 +211,19 @@ impl<T: Clone> HexShape<T> {
     /// /// Creates a rhombus of size 1, 0-1 inclusive, and sets the tiles to Some(1)
     /// let my_shape = HexShape::make_rhombus(shapeargs!(1, 0, true), || Tile::new(Some(1)));
     /// ```
-    pub fn make_rhombus<F>(args: ShapeArgs, constructor: F) -> HexShape<T>
+    pub fn make_rhombus<F>(size: u32, rot_dir: i32, square_bb: bool, constructor: F) -> Self
     where
-        T: Clone + Default,
-        F: FnMut() -> Tile<T>,
+        F: FnMut() -> T,
     {
         // Working in local space
         let vertex_a = axial!(0, 0);
-        let vertex_b = vertex_a.make_vector(args.size as i32, args.rot_dir);
-        let vertex_c = vertex_a.make_vector(args.size as i32, args.rot_dir + 1);
-        let vertex_d = vertex_b.make_vector(args.size as i32, args.rot_dir + 1);
+        let vertex_b = vertex_a.make_vector(size as i32, rot_dir);
+        let vertex_c = vertex_a.make_vector(size as i32, rot_dir + 1);
+        let vertex_d = vertex_b.make_vector(size as i32, rot_dir + 1);
 
         Self::make_shape(
             &[vertex_a, vertex_b, vertex_c, vertex_d],
-            args.square_bb,
+            square_bb,
             constructor,
         )
     }
@@ -317,7 +310,7 @@ impl<T: Clone> HexShape<T> {
         let new_x = (shape[0] as f32 * scale.x).round() as usize;
         let new_y = (shape[1] as f32 * scale.y).round() as usize;
 
-        let mut new_arr = Array2::from_shape_simple_fn((new_x, new_y), &Tile::default);
+        let mut new_arr = Array2::from_shape_simple_fn((new_x, new_y), || None);
 
         let x_ratio = (shape[0] as f32) / (new_x as f32);
         let y_ratio = (shape[1] as f32) / (new_y as f32);
@@ -342,6 +335,11 @@ impl<T: Clone> HexShape<T> {
         self
     }
 
+    pub fn set_hexes(&mut self, in_arr: Array2<Option<T>>) -> &Self {
+        self.shape = in_arr;
+        self
+    }
+
     /// Returns a vector of [`Axial`] denoting coordinates the shape contains.
     ///
     /// ```
@@ -353,15 +351,19 @@ impl<T: Clone> HexShape<T> {
     /// let my_shape: HexShape<i32> = HexShape::new(Some(array![[Tile::<i32>::default()],[Tile::<i32>::default()]]), None);
     /// let hexes_ls = my_shape.get_hexes();
     /// ```
-    pub fn get_hexes(&self) -> ArrayView2<Tile<T>> {
-        self.shape.view()
+    pub fn get_hexes(&self) -> &Array2<Option<T>> {
+        &self.shape
+    }
+
+    pub fn get_hexes_mut(&mut self) -> &mut Array2<Option<T>> {
+        &mut self.shape
     }
 }
 
 #[allow(unused_imports)]
 mod tests {
     use super::*;
-    use crate::axial;
+    use crate::{axial, core::tile::Tile};
 
     #[test]
     fn translate() {
@@ -421,36 +423,15 @@ mod tests {
         let default_tile_fn = &Tile::<i32>::default;
 
         assert_eq!(
-            HexShape::make_line(
-                ShapeArgs {
-                    size: 0,
-                    rot_dir: 0,
-                    square_bb: true
-                },
-                default_tile_fn
-            ),
+            HexShape::make_line(0, 0, true, default_tile_fn),
             HexShape::make_shape(&[axial!(0, 0)], true, default_tile_fn)
         );
         assert_eq!(
-            HexShape::make_line(
-                ShapeArgs {
-                    size: 4,
-                    rot_dir: 0,
-                    square_bb: true
-                },
-                default_tile_fn
-            ),
+            HexShape::make_line(4, 0, true, default_tile_fn),
             HexShape::make_shape(&[axial!(0, 0), axial!(0, 4)], true, default_tile_fn)
         );
         assert_eq!(
-            HexShape::make_line(
-                ShapeArgs {
-                    size: 2,
-                    rot_dir: 1,
-                    square_bb: true
-                },
-                default_tile_fn
-            ),
+            HexShape::make_line(2, 1, true, default_tile_fn),
             HexShape::make_shape(
                 &[axial!(0, 2), axial!(1, 2), axial!(2, 2)],
                 true,
@@ -458,14 +439,7 @@ mod tests {
             )
         );
         assert_eq!(
-            HexShape::make_line(
-                ShapeArgs {
-                    size: 2,
-                    rot_dir: 2,
-                    square_bb: true
-                },
-                default_tile_fn
-            ),
+            HexShape::make_line(2, 2, true, default_tile_fn),
             HexShape::make_shape(
                 &[axial!(0, 4), axial!(1, 4), axial!(2, 4)],
                 true,

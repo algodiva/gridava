@@ -2,16 +2,17 @@
 
 use std::collections::HashMap;
 
-use coordinate::Axial;
+use super::coordinate::Axial;
 
-use super::*;
+use crate::axial;
 
+use super::shape::HexShape;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 /// Enum denoting orientation of hexagons in a grid.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HexOrientation {
     FlatTop,
     PointyTop,
@@ -28,14 +29,14 @@ pub const SQRT_3: f64 = 1.732050807568877293527446341505872367_f64;
 ///
 /// Contains useful functions to convert to and from world space and grid coordinates.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone)]
-pub struct HexGrid<TileType> {
+#[derive(Debug, Clone, PartialEq)]
+pub struct HexGrid<T: Clone> {
     pub orientation: HexOrientation,
     pub hex_size: f32,
-    pub collection: HashMap<Axial, TileType>,
+    pub collection: HashMap<Axial, T>,
 }
 
-impl<TileType> Default for HexGrid<TileType> {
+impl<T: Clone> Default for HexGrid<T> {
     fn default() -> Self {
         Self {
             orientation: HexOrientation::PointyTop,
@@ -45,7 +46,7 @@ impl<TileType> Default for HexGrid<TileType> {
     }
 }
 
-impl<TileType> HexGrid<TileType> {
+impl<T: Clone> HexGrid<T> {
     /// Convert from worldspace to hex coordinates.
     ///
     /// Takes in a float 64 tuple of the form (x, y) and outputs the coordinates of the nearest tile.
@@ -123,14 +124,56 @@ impl<TileType> HexGrid<TileType> {
             }
         }
     }
+
+    /// Apply the shape onto the grid's collection.
+    ///
+    /// This will take every element inside a shape that is wrapped in Some()
+    /// and apply it into the grid's collection.
+    pub fn apply_shape(&mut self, shape: &HexShape<T>) -> &Self {
+        shape.get_hexes().indexed_iter().for_each(|ele| {
+            if let Some(value) = ele.1.as_ref() {
+                self.collection
+                    .insert(axial!(ele.0 .0 as i32, ele.0 .1 as i32), value.clone());
+            }
+        });
+        self
+    }
+
+    /// Extract data from the grid into the shape.
+    ///
+    /// Clones data from the grid's collection into the shape's internal working collection.
+    pub fn extract_shape(&self, shape: &mut HexShape<T>) -> &Self {
+        shape.get_hexes_mut().indexed_iter_mut().for_each(|ele| {
+            if ele.1.is_some() {
+                *ele.1 = self
+                    .collection
+                    .get(&axial!(ele.0 .0 as i32, ele.0 .1 as i32))
+                    .cloned();
+            } else {
+                *ele.1 = None;
+            }
+        });
+        self
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
     use crate::axial;
     use assert_float_eq::*;
+
+    #[test]
+    pub fn test() {
+        let mut grid = HexGrid::default();
+        grid.apply_shape(&HexShape::make_rhombus(8, 0, true, || 1));
+        println!("{:?}", grid.collection);
+        println!("-----------");
+        let mut shape = HexShape::make_rhombus(8, 0, true, || 0);
+        grid.extract_shape(&mut shape);
+        println!("{:?}", grid.collection);
+        println!("{:?}", shape);
+    }
 
     #[test]
     fn default() {
