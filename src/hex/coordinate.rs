@@ -36,9 +36,161 @@ macro_rules! axial {
 }
 pub use axial;
 
+/// Vertex spin is a orientation of the vertex.
+///
+/// A vertex needs to know its `spin`. Spin correlates to which side [`VertexSpin::Up`] or [`VertexSpin::Down`]
+/// has two hexagons.
+///
+/// see [`Vertex`]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
+pub enum VertexSpin {
+    Up,
+    Down,
+}
+
+/// A vertex direction denotes the direction from the hexagon center the vertex is.
+///
+/// Reference pointy-top hexagons for vertex direction, where up being directly above the center.
+///
+/// see [`Vertex`]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+pub enum VertexDirection {
+    Up,
+    UpRight,
+    DownRight,
+    Down,
+    DownLeft,
+    UpLeft,
+}
+
+impl From<i32> for VertexDirection {
+    fn from(value: i32) -> Self {
+        match value.rem_euclid(6) {
+            0 => VertexDirection::Up,
+            1 => VertexDirection::UpRight,
+            2 => VertexDirection::DownRight,
+            3 => VertexDirection::Down,
+            4 => VertexDirection::DownLeft,
+            5 => VertexDirection::UpLeft,
+            _ => panic!(), // should never reach
+        }
+    }
+}
+
+impl From<VertexDirection> for i32 {
+    fn from(value: VertexDirection) -> Self {
+        match value {
+            VertexDirection::Up => 0,
+            VertexDirection::UpRight => 1,
+            VertexDirection::DownRight => 2,
+            VertexDirection::Down => 3,
+            VertexDirection::DownLeft => 4,
+            VertexDirection::UpLeft => 5,
+        }
+    }
+}
+
+/// Vertex associated with hexagon grids.
+///
+/// A hexagonal vertex follows the same ruleset as axial coordinates with one exception.
+///
+/// It needs to know its `spin`. Spin correlates to which side [`VertexSpin::Up`] or [`VertexSpin::Down`]
+/// has two hexagons.
+///
+/// See [`vertex`] for helper macro to instantiate these structs.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
+pub struct Vertex {
+    pub q: i32,
+    pub r: i32,
+    pub spin: VertexSpin,
+}
+
+/// Helper macro to create [`Vertex`] structs.
+#[macro_export]
+macro_rules! vertex {
+    ($q:expr, $r:expr, $sp:expr) => {
+        Vertex {
+            q: $q,
+            r: $r,
+            spin: $sp,
+        }
+    };
+}
+pub use vertex;
+
+impl Default for Vertex {
+    fn default() -> Self {
+        Self {
+            q: 0,
+            r: 0,
+            spin: VertexSpin::Up,
+        }
+    }
+}
+
+impl From<VertexDirection> for Vertex {
+    fn from(value: VertexDirection) -> Self {
+        match value {
+            VertexDirection::Up => vertex!(0, 0, VertexSpin::Up),
+            VertexDirection::UpRight => vertex!(1, -1, VertexSpin::Down),
+            VertexDirection::DownRight => vertex!(0, 1, VertexSpin::Up),
+            VertexDirection::Down => vertex!(0, 0, VertexSpin::Down),
+            VertexDirection::DownLeft => vertex!(-1, 1, VertexSpin::Up),
+            VertexDirection::UpLeft => vertex!(0, -1, VertexSpin::Down),
+        }
+    }
+}
+
+impl Vertex {
+    /// Get all 3 adjacent hexes to this vertex.
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::{Axial, Vertex, VertexSpin, vertex};
+    ///
+    /// let coords = vertex!(2, 0, VertexSpin::Down).adjacent_hexes();
+    /// ```
+    pub fn adjacent_hexes(&self) -> [Axial; 3] {
+        if self.spin == VertexSpin::Up {
+            [
+                axial!(self.q, self.r),
+                axial!(self.q, self.r - 1),
+                axial!(self.q + 1, self.r - 1),
+            ]
+        } else {
+            // Spin down
+            [
+                axial!(self.q, self.r),
+                axial!(self.q, self.r + 1),
+                axial!(self.q - 1, self.r + 1),
+            ]
+        }
+    }
+
+    pub fn adjacent_vertices(&self) -> [Self; 3] {
+        if self.spin == VertexSpin::Up {
+            [
+                vertex!(self.q + 1, self.r - 2, VertexSpin::Down),
+                vertex!(self.q, self.r - 1, VertexSpin::Down),
+                vertex!(self.q + 1, self.r - 1, VertexSpin::Down),
+            ]
+        } else {
+            [
+                vertex!(self.q - 1, self.r + 1, VertexSpin::Up),
+                vertex!(self.q - 1, self.r + 2, VertexSpin::Up),
+                vertex!(self.q, self.r + 1, VertexSpin::Up),
+            ]
+        }
+    }
+}
+
 /// Describes a direction.
 ///
 /// Positive q is the forward vector for a tile, meaning these directions are in relation to that.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(PartialEq, Eq, Debug)]
 pub enum HexDirection {
     Front,
@@ -200,6 +352,148 @@ impl Axial {
     /// ```
     pub fn neighbor(&self, direction: HexDirection) -> Self {
         self.make_vector(1, direction.into())
+    }
+
+    /// Get all the neighbors for this coordinate.
+    ///
+    /// See [`HexDirection`] for a reference of directionality.
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::{Axial, axial};
+    ///
+    /// let coord = axial!(1, 2);
+    ///
+    /// if axial!(0, 0).neighbors().contains(&coord) {
+    ///     // Do something ...
+    /// }
+    /// ```
+    pub fn neighbors(&self) -> [Self; 6] {
+        [
+            self.neighbor(HexDirection::Front),
+            self.neighbor(HexDirection::FrontRight),
+            self.neighbor(HexDirection::BackRight),
+            self.neighbor(HexDirection::Back),
+            self.neighbor(HexDirection::BackLeft),
+            self.neighbor(HexDirection::FrontLeft),
+        ]
+    }
+
+    /// Checks if ALL of the supplied coordinates are neighbors to self.
+    ///
+    /// See [`Axial::neighbor`].
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::{Axial, axial};
+    ///
+    /// let coord = axial!(1, 2);
+    ///
+    /// if axial!(0, 0).are_neighbors(&[coord]) {
+    ///     // Do something ...
+    /// }
+    /// ```
+    pub fn are_neighbors(&self, coords: &[Self]) -> bool {
+        for coord in coords {
+            if !self.neighbors().contains(coord) {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// Generates all 6 vertices that are associated with this tile.
+    ///
+    /// See [`Vertex`].
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::{Axial, axial, Vertex};
+    ///
+    /// axial!(0, 0).vertices().iter().map(|vert| {/* ... */} );
+    ///
+    /// ```
+    pub fn vertices(&self) -> [Vertex; 6] {
+        [
+            vertex!(self.q, self.r, VertexSpin::Up),
+            vertex!(self.q + 1, self.r - 1, VertexSpin::Down),
+            vertex!(self.q, self.r + 1, VertexSpin::Up),
+            vertex!(self.q, self.r, VertexSpin::Down),
+            vertex!(self.q - 1, self.r + 1, VertexSpin::Up),
+            vertex!(self.q, self.r - 1, VertexSpin::Down),
+        ]
+    }
+
+    /// Given two neighboring tiles produce the shared vertices.
+    ///
+    /// See [`Vertex`].
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::{Axial, axial, Vertex};
+    ///
+    /// let verts = axial!(0, 0).shared_vert_two(axial!(1, 0));
+    ///
+    /// ```
+    pub fn shared_vert_two(&self, b: Self) -> Option<[Vertex; 2]> {
+        for i in 0..=5 {
+            let dir = HexDirection::from(i);
+            let vec = dir.to_movement_vector();
+            if b == vec + *self {
+                // We found the neighbor and its direction.
+                // Front is in the positive q direction here.
+                return match dir {
+                    HexDirection::Front => Some([
+                        vertex!(self.q + 1, self.q - 1, VertexSpin::Down),
+                        vertex!(self.q, self.q + 1, VertexSpin::Up),
+                    ]),
+                    HexDirection::FrontRight => Some([
+                        vertex!(self.q, self.q + 1, VertexSpin::Up),
+                        vertex!(self.q, self.q, VertexSpin::Down),
+                    ]),
+                    HexDirection::BackRight => Some([
+                        vertex!(self.q, self.q, VertexSpin::Down),
+                        vertex!(self.q - 1, self.q + 1, VertexSpin::Up),
+                    ]),
+                    HexDirection::Back => Some([
+                        vertex!(self.q - 1, self.q + 1, VertexSpin::Up),
+                        vertex!(self.q, self.q - 1, VertexSpin::Down),
+                    ]),
+                    HexDirection::BackLeft => Some([
+                        vertex!(self.q, self.q - 1, VertexSpin::Down),
+                        vertex!(self.q, self.q, VertexSpin::Up),
+                    ]),
+                    HexDirection::FrontLeft => Some([
+                        vertex!(self.q, self.q, VertexSpin::Up),
+                        vertex!(self.q + 1, self.q - 1, VertexSpin::Down),
+                    ]),
+                };
+            }
+        }
+        None
+    }
+
+    /// Given three neighboring tiles produce the shared vertex.
+    ///
+    /// See [`Vertex`].
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::{Axial, axial, Vertex};
+    ///
+    /// let verts = axial!(0, 0).shared_vert_three(axial!(1, 0), axial!(0, 1));
+    ///
+    /// ```
+    pub fn shared_vert_three(&self, b: Self, c: Self) -> Option<Vertex> {
+        let ab_verts = self.shared_vert_two(b)?;
+
+        // If c has vert 0 then we exit with 0
+        if c.vertices().contains(&ab_verts[0]) {
+            Some(ab_verts[0])
+        } else {
+            // Otherwise it's the other
+            Some(ab_verts[1])
+        }
     }
 
     /// Compute distance between two coordinates.
@@ -728,5 +1022,26 @@ mod tests {
         assert_eq!(axial!(0, 0).rotate(Some(axial!(1, 1)), 1), axial!(2, -1));
         assert_eq!(axial!(0, 0).rotate(Some(axial!(1, 1)), 2), axial!(3, 0));
         assert_eq!(axial!(0, 0).rotate(Some(axial!(1, 1)), 3), axial!(2, 2));
+    }
+
+    #[test]
+    fn shared_vert_two() {
+        assert_eq!(
+            axial!(1, 1).shared_vert_two(axial!(2, 0)).unwrap(),
+            [
+                vertex!(2, 0, VertexSpin::Down),
+                vertex!(1, 1, VertexSpin::Up)
+            ]
+        );
+    }
+
+    #[test]
+    fn shared_vert_three() {
+        assert_eq!(
+            axial!(1, 1)
+                .shared_vert_three(axial!(2, 0), axial!(2, 1))
+                .unwrap(),
+            vertex!(2, 0, VertexSpin::Down)
+        );
     }
 }
