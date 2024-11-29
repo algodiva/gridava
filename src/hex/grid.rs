@@ -60,7 +60,7 @@ impl<T: Clone, V> HexGrid<T, V> {
     /// /// ...
     /// use gridava::hex::grid::HexGrid;
     ///
-    /// let my_grid = HexGrid::<i32>::default();
+    /// let my_grid = HexGrid::<i32, ()>::default();
     /// let nearest_tile = my_grid.world_to_hex(my_object_pos);
     /// ```
     ///
@@ -105,7 +105,7 @@ impl<T: Clone, V> HexGrid<T, V> {
     /// use gridava::hex::grid::HexGrid;
     /// use gridava::hex::coordinate::{Axial, axial};
     ///
-    /// let my_grid = HexGrid::<i32>::default();
+    /// let my_grid = HexGrid::<i32, ()>::default();
     /// let world_pos = my_grid.hex_to_world(axial!(12, 33));
     /// ```
     ///

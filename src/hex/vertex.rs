@@ -118,7 +118,8 @@ impl Vertex {
     ///
     /// # Example
     /// ```
-    /// use gridava::hex::coordinate::{Axial, Vertex, VertexSpin, vertex};
+    /// use gridava::hex::vertex::{Vertex, VertexSpin, vertex};
+    /// use gridava::hex::coordinate::Axial;
     ///
     /// let coords = vertex!(2, 0, VertexSpin::Down).adjacent_hexes();
     /// ```
@@ -139,6 +140,15 @@ impl Vertex {
         }
     }
 
+    /// Get all 3 adjacent vertices to this vertex.
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::vertex::{Vertex, VertexSpin, vertex};
+    /// use gridava::hex::coordinate::Axial;
+    ///
+    /// let vertices = vertex!(2, 0, VertexSpin::Down).adjacent_vertices();
+    /// ```
     pub fn adjacent_vertices(&self) -> [Self; 3] {
         if self.spin == VertexSpin::Up {
             [

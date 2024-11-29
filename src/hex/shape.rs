@@ -152,16 +152,16 @@ impl<T: Clone> HexShape<T> {
 
     /// Create a line shape.
     ///
-    /// Given a size and direction, see [`ShapeArgs`], this will create a line.
+    /// Given a size and direction this will create a line.
     ///
     /// see [`Self::make_shape`] for more.
     ///
     /// ```
     /// use gridava::core::tile::Tile;
-    /// use gridava::hex::shape::{HexShape, ShapeArgs, shapeargs};
+    /// use gridava::hex::shape::HexShape;
     ///
     /// /// Creates a line of size 1, 0-1 inclusive, and sets the tiles to Some(1)
-    /// let my_shape = HexShape::make_line(shapeargs!(1, 0, true), || Tile::new(Some(1)));
+    /// let my_shape = HexShape::make_line(1, 0, true, || Tile::new(Some(1)));
     /// ```
     pub fn make_line<F>(size: u32, rot_dir: i32, square_bb: bool, constructor: F) -> Self
     where
@@ -175,16 +175,16 @@ impl<T: Clone> HexShape<T> {
 
     /// Create a triangle shape.
     ///
-    /// Given a size and direction, see [`ShapeArgs`], this will create a triangle.
+    /// Given a size and direction this will create a triangle.
     ///
     /// see [`Self::make_shape`] for more.
     ///
     /// ```
     /// use gridava::core::tile::Tile;
-    /// use gridava::hex::shape::{HexShape, ShapeArgs, shapeargs};
+    /// use gridava::hex::shape::HexShape;
     ///
     /// /// Creates a triangle of size 1, 0-1 inclusive, and sets the tiles to Some(1)
-    /// let my_shape = HexShape::make_triangle(shapeargs!(1, 0, true), || Tile::new(Some(1)));
+    /// let my_shape = HexShape::make_triangle(1, 0, true, || Tile::new(Some(1)));
     /// ```
     pub fn make_triangle<F>(size: u32, rot_dir: i32, square_bb: bool, constructor: F) -> Self
     where
@@ -200,16 +200,16 @@ impl<T: Clone> HexShape<T> {
 
     /// Create a rhombus shape.
     ///
-    /// Given a size and direction, see [`ShapeArgs`], this will create a rhombus.
+    /// Given a size and direction this will create a rhombus.
     ///
     /// see [`Self::make_shape`] for more.
     ///
     /// ```
     /// use gridava::core::tile::Tile;
-    /// use gridava::hex::shape::{HexShape, ShapeArgs, shapeargs};
+    /// use gridava::hex::shape::HexShape;
     ///
     /// /// Creates a rhombus of size 1, 0-1 inclusive, and sets the tiles to Some(1)
-    /// let my_shape = HexShape::make_rhombus(shapeargs!(1, 0, true), || Tile::new(Some(1)));
+    /// let my_shape = HexShape::make_rhombus(1, 0, true, || Tile::new(Some(1)));
     /// ```
     pub fn make_rhombus<F>(size: u32, rot_dir: i32, square_bb: bool, constructor: F) -> Self
     where

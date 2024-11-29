@@ -277,7 +277,8 @@ impl Axial {
     ///
     /// # Example
     /// ```
-    /// use gridava::hex::coordinate::{Axial, axial, Vertex};
+    /// use gridava::hex::vertex::Vertex;
+    /// use gridava::hex::coordinate::{Axial, axial};
     ///
     /// axial!(0, 0).vertices().iter().map(|vert| {/* ... */} );
     ///
@@ -299,7 +300,8 @@ impl Axial {
     ///
     /// # Example
     /// ```
-    /// use gridava::hex::coordinate::{Axial, axial, Vertex};
+    /// use gridava::hex::vertex::Vertex;
+    /// use gridava::hex::coordinate::{Axial, axial};
     ///
     /// let verts = axial!(0, 0).shared_vert_two(axial!(1, 0));
     ///
@@ -348,7 +350,8 @@ impl Axial {
     ///
     /// # Example
     /// ```
-    /// use gridava::hex::coordinate::{Axial, axial, Vertex};
+    /// use gridava::hex::vertex::Vertex;
+    /// use gridava::hex::coordinate::{Axial, axial};
     ///
     /// let verts = axial!(0, 0).shared_vert_three(axial!(1, 0), axial!(0, 1));
     ///
