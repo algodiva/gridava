@@ -359,9 +359,11 @@ impl Axial {
         // If c has vert 0 then we exit with 0
         if c.vertices().contains(&ab_verts[0]) {
             Some(ab_verts[0])
-        } else {
+        } else if c.vertices().contains(&ab_verts[1]) {
             // Otherwise it's the other
             Some(ab_verts[1])
+        } else {
+            None
         }
     }
 
@@ -994,5 +996,13 @@ mod tests {
                 .unwrap(),
             vertex!(0, 1, VertexSpin::Up)
         );
+
+        assert!(axial!(0, 0)
+            .shared_vert_three(axial!(1, 1), axial!(3, 9))
+            .is_none());
+
+        assert!(axial!(0, 0)
+            .shared_vert_three(axial!(1, 0), axial!(3, 3))
+            .is_none());
     }
 }
