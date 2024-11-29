@@ -661,7 +661,7 @@ mod tests {
     fn apply_transform() {
         let transform = transform!(axial!(1, 1), 1);
         assert_eq!(axial!(0, 0).apply_transform(transform), axial!(1, 1));
-        assert_eq!(axial!(1, 1).apply_transform(transform), axial!(0, 2));
+        assert_eq!(axial!(1, 1).apply_transform(transform), axial!(0, 3));
     }
 
     #[test]
