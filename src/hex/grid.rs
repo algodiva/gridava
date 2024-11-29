@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use super::coordinate::Axial;
+use super::coordinate::{Axial, Vertex};
 
 use crate::axial;
 
@@ -30,23 +30,25 @@ pub const SQRT_3: f64 = 1.732050807568877293527446341505872367_f64;
 /// Contains useful functions to convert to and from world space and grid coordinates.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
-pub struct HexGrid<T: Clone> {
+pub struct HexGrid<T: Clone, V> {
     pub orientation: HexOrientation,
     pub hex_size: f32,
-    pub collection: HashMap<Axial, T>,
+    pub tiles: HashMap<Axial, T>,
+    pub vertices: HashMap<Vertex, V>,
 }
 
-impl<T: Clone> Default for HexGrid<T> {
+impl<T: Clone, V> Default for HexGrid<T, V> {
     fn default() -> Self {
         Self {
             orientation: HexOrientation::PointyTop,
             hex_size: 32.0,
-            collection: Default::default(),
+            tiles: Default::default(),
+            vertices: Default::default(),
         }
     }
 }
 
-impl<T: Clone> HexGrid<T> {
+impl<T: Clone, V> HexGrid<T, V> {
     /// Convert from worldspace to hex coordinates.
     ///
     /// Takes in a float 64 tuple of the form (x, y) and outputs the coordinates of the nearest tile.
@@ -129,11 +131,30 @@ impl<T: Clone> HexGrid<T> {
     ///
     /// This will take every element inside a shape that is wrapped in Some()
     /// and apply it into the grid's collection.
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::grid::HexGrid;
+    /// use gridava::hex::shape::HexShape;
+    ///
+    /// #[derive(Default, Clone)]
+    /// pub struct MyData {
+    ///     pub my_int: i32,
+    /// }
+    ///
+    /// let mut my_grid = HexGrid::<MyData, ()>::default();
+    /// let my_shape = HexShape::make_triangle(1, 0, true, MyData::default);
+    ///
+    /// my_grid.apply_shape(&my_shape);
+    /// ```
     pub fn apply_shape(&mut self, shape: &HexShape<T>) -> &Self {
         shape.get_hexes().indexed_iter().for_each(|ele| {
             if let Some(value) = ele.1.as_ref() {
-                self.collection
-                    .insert(axial!(ele.0 .0 as i32, ele.0 .1 as i32), value.clone());
+                // Apply transform
+                let coord =
+                    axial!(ele.0 .0 as i32, ele.0 .1 as i32).apply_transform(shape.transform);
+
+                self.tiles.insert(coord, value.clone());
             }
         });
         self
@@ -142,18 +163,34 @@ impl<T: Clone> HexGrid<T> {
     /// Extract data from the grid into the shape.
     ///
     /// Clones data from the grid's collection into the shape's internal working collection.
-    pub fn extract_shape(&self, shape: &mut HexShape<T>) -> &Self {
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::grid::HexGrid;
+    /// use gridava::hex::shape::HexShape;
+    ///
+    /// #[derive(Default, Clone)]
+    /// pub struct MyData {
+    ///     pub my_int: i32,
+    /// }
+    ///
+    /// let my_grid = HexGrid::<MyData, ()>::default();
+    ///
+    /// // ... generate data in grid
+    ///
+    /// let mut my_shape = HexShape::make_triangle(1, 0, true, MyData::default);
+    /// my_grid.extract_shape(&mut my_shape);
+    /// ```
+    pub fn extract_shape(&self, shape: &mut HexShape<T>) {
+        let transform = shape.transform;
+
         shape.get_hexes_mut().indexed_iter_mut().for_each(|ele| {
             if ele.1.is_some() {
-                *ele.1 = self
-                    .collection
-                    .get(&axial!(ele.0 .0 as i32, ele.0 .1 as i32))
-                    .cloned();
-            } else {
-                *ele.1 = None;
+                // Apply transform
+                let coord = axial!(ele.0 .0 as i32, ele.0 .1 as i32).apply_transform(transform);
+                *ele.1 = self.tiles.get(&coord).cloned();
             }
         });
-        self
     }
 }
 
@@ -164,72 +201,65 @@ mod tests {
     use assert_float_eq::*;
 
     #[test]
-    pub fn test() {
-        let mut grid = HexGrid::default();
-        grid.apply_shape(&HexShape::make_rhombus(8, 0, true, || 1));
-        println!("{:?}", grid.collection);
-        println!("-----------");
-        let mut shape = HexShape::make_rhombus(8, 0, true, || 0);
-        grid.extract_shape(&mut shape);
-        println!("{:?}", grid.collection);
-        println!("{:?}", shape);
-    }
-
-    #[test]
     fn default() {
-        let def = HexGrid::<i32>::default();
+        let def = HexGrid::<(), ()>::default();
 
         assert_eq!(def.orientation, HexOrientation::PointyTop);
         assert_eq!(def.hex_size, 32.0);
-        assert!(def.collection.is_empty());
+        assert!(def.tiles.is_empty());
     }
 
     #[test]
     fn world_to_hex() {
-        let pt10p = HexGrid::<i32> {
-            orientation: HexOrientation::PointyTop,
+        // Size 10 PT
+        let grid = HexGrid::<(), ()> {
             hex_size: 10.0,
-            collection: Default::default(),
+            ..HexGrid::default()
         };
-        let pt32p = HexGrid::<i32> {
-            orientation: HexOrientation::PointyTop,
+
+        assert_eq!(grid.world_to_hex((0.0, 0.0)), axial!(0, 0));
+        assert_eq!(grid.world_to_hex((SQRT_3 * 112.0, 0.0)), axial!(11, 0));
+        assert_eq!(grid.world_to_hex((SQRT_3 * 56.0, -470.0)), axial!(21, -31));
+        assert_eq!(grid.world_to_hex((0.0, 640.0)), axial!(-21, 42));
+        assert_eq!(grid.world_to_hex((SQRT_3 * 144.0, 640.0)), axial!(-7, 43));
+
+        // size 32 PT
+        let grid = HexGrid {
             hex_size: 32.0,
-            collection: Default::default(),
+            ..grid
         };
-        let pt10f = HexGrid::<i32> {
+
+        assert_eq!(grid.world_to_hex((0.0, 0.0)), axial!(0, 0));
+        assert_eq!(grid.world_to_hex((SQRT_3 * 112.0, 0.0)), axial!(4, 0));
+        assert_eq!(grid.world_to_hex((SQRT_3 * 56.0, -470.0)), axial!(7, -10));
+        assert_eq!(grid.world_to_hex((0.0, 640.0)), axial!(-6, 13));
+        assert_eq!(grid.world_to_hex((SQRT_3 * 144.0, 640.0)), axial!(-2, 13));
+
+        // size 32 FT
+        let grid = HexGrid {
+            hex_size: 32.0,
             orientation: HexOrientation::FlatTop,
+            ..grid
+        };
+
+        assert_eq!(grid.world_to_hex((0.0, 0.0)), axial!(0, 0));
+        assert_eq!(grid.world_to_hex((SQRT_3 * 112.0, 0.0)), axial!(13, -7)); // TODO: should this not give (13, -6)?
+        assert_eq!(grid.world_to_hex((SQRT_3 * 56.0, -470.0)), axial!(6, -30));
+        assert_eq!(grid.world_to_hex((0.0, 640.0)), axial!(0, 37));
+        assert_eq!(grid.world_to_hex((SQRT_3 * 144.0, 640.0)), axial!(16, 29));
+
+        // size 10 FT
+        let grid = HexGrid {
             hex_size: 10.0,
-            collection: Default::default(),
-        };
-        let pt32f = HexGrid::<i32> {
             orientation: HexOrientation::FlatTop,
-            hex_size: 32.0,
-            collection: Default::default(),
+            ..grid
         };
 
-        assert_eq!(pt10p.world_to_hex((0.0, 0.0)), axial!(0, 0));
-        assert_eq!(pt10p.world_to_hex((SQRT_3 * 112.0, 0.0)), axial!(11, 0));
-        assert_eq!(pt10p.world_to_hex((SQRT_3 * 56.0, -470.0)), axial!(21, -31));
-        assert_eq!(pt10p.world_to_hex((0.0, 640.0)), axial!(-21, 42));
-        assert_eq!(pt10p.world_to_hex((SQRT_3 * 144.0, 640.0)), axial!(-7, 43));
-
-        assert_eq!(pt32p.world_to_hex((0.0, 0.0)), axial!(0, 0));
-        assert_eq!(pt32p.world_to_hex((SQRT_3 * 112.0, 0.0)), axial!(4, 0));
-        assert_eq!(pt32p.world_to_hex((SQRT_3 * 56.0, -470.0)), axial!(7, -10));
-        assert_eq!(pt32p.world_to_hex((0.0, 640.0)), axial!(-6, 13));
-        assert_eq!(pt32p.world_to_hex((SQRT_3 * 144.0, 640.0)), axial!(-2, 13));
-
-        assert_eq!(pt10f.world_to_hex((0.0, 0.0)), axial!(0, 0));
-        assert_eq!(pt10f.world_to_hex((SQRT_3 * 112.0, 0.0)), axial!(13, -7)); // TODO: should this not give (13, -6)?
-        assert_eq!(pt10f.world_to_hex((SQRT_3 * 56.0, -470.0)), axial!(6, -30));
-        assert_eq!(pt10f.world_to_hex((0.0, 640.0)), axial!(0, 37));
-        assert_eq!(pt10f.world_to_hex((SQRT_3 * 144.0, 640.0)), axial!(16, 29));
-
-        assert_eq!(pt32f.world_to_hex((0.0, 0.0)), axial!(0, 0));
-        assert_eq!(pt32f.world_to_hex((SQRT_3 * 112.0, 0.0)), axial!(4, -2));
-        assert_eq!(pt32f.world_to_hex((SQRT_3 * 56.0, -470.0)), axial!(2, -9));
-        assert_eq!(pt32f.world_to_hex((0.0, 640.0)), axial!(0, 12));
-        assert_eq!(pt32f.world_to_hex((SQRT_3 * 144.0, 640.0)), axial!(5, 9));
+        assert_eq!(grid.world_to_hex((0.0, 0.0)), axial!(0, 0));
+        assert_eq!(grid.world_to_hex((SQRT_3 * 112.0, 0.0)), axial!(4, -2));
+        assert_eq!(grid.world_to_hex((SQRT_3 * 56.0, -470.0)), axial!(2, -9));
+        assert_eq!(grid.world_to_hex((0.0, 640.0)), axial!(0, 12));
+        assert_eq!(grid.world_to_hex((SQRT_3 * 144.0, 640.0)), axial!(5, 9));
     }
 
     macro_rules! assert_f64_tuples_near {
@@ -242,80 +272,80 @@ mod tests {
 
     #[test]
     fn hex_to_world() {
-        let pt10p = HexGrid::<i32> {
-            orientation: HexOrientation::PointyTop,
+        // Size 10 PT
+        let grid = HexGrid::<(), ()> {
             hex_size: 10.0,
-            collection: Default::default(),
-        };
-        let pt40p = HexGrid::<i32> {
-            orientation: HexOrientation::PointyTop,
-            hex_size: 40.0,
-            collection: Default::default(),
-        };
-        let pt10f = HexGrid::<i32> {
-            orientation: HexOrientation::FlatTop,
-            hex_size: 10.0,
-            collection: Default::default(),
-        };
-        let pt40f = HexGrid::<i32> {
-            orientation: HexOrientation::FlatTop,
-            hex_size: 40.0,
-            collection: Default::default(),
+            ..HexGrid::default()
         };
 
-        assert_f64_tuples_near!(pt10p.hex_to_world(axial!(0, -15)), (SQRT_3 * -75.0, -225.0));
-        assert_f64_tuples_near!(pt10p.hex_to_world(axial!(0, 0)), (0.0, 0.0));
-        assert_f64_tuples_near!(pt10p.hex_to_world(axial!(0, 15)), (SQRT_3 * 75.0, 225.0));
-        assert_f64_tuples_near!(pt10p.hex_to_world(axial!(8, -12)), (SQRT_3 * 20.0, -180.0));
-        assert_f64_tuples_near!(pt10p.hex_to_world(axial!(8, 12)), (SQRT_3 * 140.0, 180.0));
-        assert_f64_tuples_near!(pt10p.hex_to_world(axial!(12, -8)), (SQRT_3 * 80.0, -120.0));
-        assert_f64_tuples_near!(pt10p.hex_to_world(axial!(12, 8)), (SQRT_3 * 160.0, 120.0));
-        assert_f64_tuples_near!(pt10p.hex_to_world(axial!(15, 0)), (SQRT_3 * 150.0, 0.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(0, -15)), (SQRT_3 * -75.0, -225.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(0, 0)), (0.0, 0.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(0, 15)), (SQRT_3 * 75.0, 225.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(8, -12)), (SQRT_3 * 20.0, -180.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(8, 12)), (SQRT_3 * 140.0, 180.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(12, -8)), (SQRT_3 * 80.0, -120.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(12, 8)), (SQRT_3 * 160.0, 120.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(15, 0)), (SQRT_3 * 150.0, 0.0));
         assert_f64_tuples_near!(
-            pt10p.hex_to_world(axial!(-8, -12)),
+            grid.hex_to_world(axial!(-8, -12)),
             (SQRT_3 * -140.0, -180.0)
         );
-        assert_f64_tuples_near!(pt10p.hex_to_world(axial!(-8, 12)), (SQRT_3 * -20.0, 180.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(-8, 12)), (SQRT_3 * -20.0, 180.0));
         assert_f64_tuples_near!(
-            pt10p.hex_to_world(axial!(-12, -8)),
+            grid.hex_to_world(axial!(-12, -8)),
             (SQRT_3 * -160.0, -120.0)
         );
-        assert_f64_tuples_near!(pt10p.hex_to_world(axial!(-12, 8)), (SQRT_3 * -80.0, 120.0));
-        assert_f64_tuples_near!(pt10p.hex_to_world(axial!(-15, 0)), (SQRT_3 * -150.0, 0.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(-12, 8)), (SQRT_3 * -80.0, 120.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(-15, 0)), (SQRT_3 * -150.0, 0.0));
 
-        assert_f64_tuples_near!(pt10f.hex_to_world(axial!(0, -15)), (0.0, SQRT_3 * -150.0));
-        assert_f64_tuples_near!(pt10f.hex_to_world(axial!(0, 0)), (0.0, 0.0));
-        assert_f64_tuples_near!(pt10f.hex_to_world(axial!(0, 15)), (0.0, SQRT_3 * 150.0));
-        assert_f64_tuples_near!(pt10f.hex_to_world(axial!(8, -12)), (120.0, SQRT_3 * -80.0));
-        assert_f64_tuples_near!(pt10f.hex_to_world(axial!(8, 12)), (120.0, SQRT_3 * 160.0));
-        assert_f64_tuples_near!(pt10f.hex_to_world(axial!(12, -8)), (180.0, SQRT_3 * -20.0));
-        assert_f64_tuples_near!(pt10f.hex_to_world(axial!(12, 8)), (180.0, SQRT_3 * 140.0));
-        assert_f64_tuples_near!(pt10f.hex_to_world(axial!(15, 0)), (225.0, SQRT_3 * 75.0));
+        // Size 40 PT
+        let grid = HexGrid {
+            hex_size: 40.0,
+            ..grid
+        };
+
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(0, 0)), (0.0, 0.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(0, -15)), (SQRT_3 * -300.0, -900.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(15, 0)), (SQRT_3 * 600.0, 0.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(-12, 8)), (SQRT_3 * -320.0, 480.0));
+
+        // Size 40 FT
+        let grid = HexGrid {
+            orientation: HexOrientation::FlatTop,
+            ..grid
+        };
+
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(0, 0)), (0.0, 0.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(0, -15)), (0.0, SQRT_3 * -600.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(15, 0)), (900.0, SQRT_3 * 300.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(-12, 8)), (-720.0, SQRT_3 * 80.0));
+
+        // Size 10 FT
+        let grid = HexGrid {
+            hex_size: 10.0,
+            ..grid
+        };
+
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(0, -15)), (0.0, SQRT_3 * -150.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(0, 0)), (0.0, 0.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(0, 15)), (0.0, SQRT_3 * 150.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(8, -12)), (120.0, SQRT_3 * -80.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(8, 12)), (120.0, SQRT_3 * 160.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(12, -8)), (180.0, SQRT_3 * -20.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(12, 8)), (180.0, SQRT_3 * 140.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(15, 0)), (225.0, SQRT_3 * 75.0));
         assert_f64_tuples_near!(
-            pt10f.hex_to_world(axial!(-8, -12)),
+            grid.hex_to_world(axial!(-8, -12)),
             (-120.0, SQRT_3 * -160.0)
         );
-        assert_f64_tuples_near!(pt10f.hex_to_world(axial!(-8, 12)), (-120.0, SQRT_3 * 80.0));
-        assert_f64_tuples_near!(pt10f.hex_to_world(axial!(-10, 10)), (-150.0, SQRT_3 * 50.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(-8, 12)), (-120.0, SQRT_3 * 80.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(-10, 10)), (-150.0, SQRT_3 * 50.0));
         assert_f64_tuples_near!(
-            pt10f.hex_to_world(axial!(-12, -8)),
+            grid.hex_to_world(axial!(-12, -8)),
             (-180.0, SQRT_3 * -140.0)
         );
-        assert_f64_tuples_near!(pt10f.hex_to_world(axial!(-12, 8)), (-180.0, SQRT_3 * 20.0));
-        assert_f64_tuples_near!(pt10f.hex_to_world(axial!(-15, 0)), (-225.0, SQRT_3 * -75.0));
-
-        assert_f64_tuples_near!(pt40p.hex_to_world(axial!(0, 0)), (0.0, 0.0));
-        assert_f64_tuples_near!(
-            pt40p.hex_to_world(axial!(0, -15)),
-            (SQRT_3 * -300.0, -900.0)
-        );
-        assert_f64_tuples_near!(pt40p.hex_to_world(axial!(15, 0)), (SQRT_3 * 600.0, 0.0));
-        assert_f64_tuples_near!(pt40p.hex_to_world(axial!(-12, 8)), (SQRT_3 * -320.0, 480.0));
-
-        assert_f64_tuples_near!(pt40f.hex_to_world(axial!(0, 0)), (0.0, 0.0));
-        assert_f64_tuples_near!(pt40f.hex_to_world(axial!(0, -15)), (0.0, SQRT_3 * -600.0));
-        assert_f64_tuples_near!(pt40f.hex_to_world(axial!(15, 0)), (900.0, SQRT_3 * 300.0));
-        assert_f64_tuples_near!(pt40f.hex_to_world(axial!(-12, 8)), (-720.0, SQRT_3 * 80.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(-12, 8)), (-180.0, SQRT_3 * 20.0));
+        assert_f64_tuples_near!(grid.hex_to_world(axial!(-15, 0)), (-225.0, SQRT_3 * -75.0));
     }
 
     macro_rules! two_way_conversion {
@@ -328,10 +358,9 @@ mod tests {
 
     #[test]
     fn two_way_identity() {
-        let pt10p = HexGrid::<i32> {
-            orientation: HexOrientation::PointyTop,
+        let pt10p = HexGrid::<(), ()> {
             hex_size: 10.0,
-            collection: Default::default(),
+            ..HexGrid::default()
         };
 
         two_way_conversion!(pt10p.clone(), axial!(0, 0));
@@ -339,10 +368,9 @@ mod tests {
         two_way_conversion!(pt10p.clone(), axial!(15, 0));
         two_way_conversion!(pt10p.clone(), axial!(0, -15));
 
-        let ft10p = HexGrid::<i32> {
+        let ft10p = HexGrid {
             orientation: HexOrientation::FlatTop,
-            hex_size: 10.0,
-            collection: Default::default(),
+            ..pt10p
         };
 
         two_way_conversion!(ft10p.clone(), axial!(0, 0));

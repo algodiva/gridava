@@ -330,31 +330,56 @@ impl<T: Clone> HexShape<T> {
                 new_arr[[x, y]] = self.shape[[src_x_clamped, src_y_clamped]].clone();
             }
         }
-        self.transform.scale *= scale;
         self.shape = new_arr;
         self
     }
 
+    /// Set a new origin for the shape.
+    pub fn set_origin(&mut self, new_origin: Transform<Axial>) -> &Self {
+        self.transform = new_origin;
+        self
+    }
+
+    /// Overwrite the internal working array of the shape.
     pub fn set_hexes(&mut self, in_arr: Array2<Option<T>>) -> &Self {
         self.shape = in_arr;
         self
     }
 
-    /// Returns a vector of [`Axial`] denoting coordinates the shape contains.
+    /// Get a reference to the shape's tile array.
     ///
+    /// # Example
     /// ```
     /// use gridava::hex::coordinate::Axial;
     /// use gridava::hex::shape::HexShape;
     /// use gridava::core::tile::Tile;
     /// use ndarray::array;
     ///
-    /// let my_shape: HexShape<i32> = HexShape::new(Some(array![[Tile::<i32>::default()],[Tile::<i32>::default()]]), None);
+    /// let arr = array![[Some(Tile::<i32>::default()), None],
+    ///                 [None, Some(Tile::<i32>::default())]];
+    ///
+    /// let my_shape = HexShape::new(Some(arr), None);
     /// let hexes_ls = my_shape.get_hexes();
     /// ```
     pub fn get_hexes(&self) -> &Array2<Option<T>> {
         &self.shape
     }
 
+    /// Get a mutable version of the shape's array.
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::Axial;
+    /// use gridava::hex::shape::HexShape;
+    /// use gridava::core::tile::Tile;
+    /// use ndarray::array;
+    ///
+    /// let arr = array![[Some(Tile::<i32>::default()), None],
+    ///                 [None, Some(Tile::<i32>::default())]];
+    ///
+    /// let mut my_shape = HexShape::new(Some(arr), None);
+    /// let hexes_ls = my_shape.get_hexes_mut();
+    /// ```
     pub fn get_hexes_mut(&mut self) -> &mut Array2<Option<T>> {
         &mut self.shape
     }

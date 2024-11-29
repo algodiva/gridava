@@ -23,19 +23,19 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, PartialEq, Debug)]
 pub struct Tile<T: Clone> {
-    pub data: Option<Box<T>>,
+    pub data: T,
 }
 
 impl<T: Default + Clone> Tile<T> {
     pub fn new(data: Option<T>) -> Tile<T> {
         Tile {
-            data: data.map(|value| Box::new(value)),
+            data: data.unwrap_or_default(),
         }
     }
 }
 
-impl<T: Clone> Default for Tile<T> {
+impl<T: Default + Clone> Default for Tile<T> {
     fn default() -> Self {
-        Self { data: None }
+        Self { data: T::default() }
     }
 }

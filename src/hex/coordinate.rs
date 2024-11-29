@@ -121,6 +121,8 @@ macro_rules! vertex {
 }
 pub use vertex;
 
+use crate::core::transform::Transform;
+
 impl Default for Vertex {
     fn default() -> Self {
         Self {
@@ -316,6 +318,23 @@ impl Axial {
     /// ```
     pub fn swizzle_r(&self) -> Self {
         axial!(self.compute_s(), self.q)
+    }
+
+    /// Applies a transform matrix to this coordinate.
+    ///
+    /// Scale has no meaning with a point so we do not scale here.
+    ///
+    /// The order of applications is rotation then translation.
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::{Axial, axial};
+    /// use gridava::core::transform::{Transform, transform, Vector2D, vector2d};
+    ///
+    /// let new_coord = axial!(2, 5).apply_transform(transform!(axial!(1, 1), 4));
+    /// ```
+    pub fn apply_transform(&self, transform: Transform<Self>) -> Self {
+        self.rotate(None, transform.rotation) + transform.translation
     }
 
     /// Make a vector from its components.
