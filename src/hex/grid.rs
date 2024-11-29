@@ -396,4 +396,38 @@ mod tests {
         two_way_conversion!(ft10p.clone(), axial!(15, 0));
         two_way_conversion!(ft10p.clone(), axial!(0, -15));
     }
+
+    #[test]
+    fn apply_shape() {
+        let shape = HexShape::make_rhombus(1, 0, true, || 1);
+        let mut grid = HexGrid::<i32, ()>::default();
+
+        grid.apply_shape(&shape);
+
+        shape.get_hexes().indexed_iter().for_each(|ele| {
+            assert_eq!(
+                *grid
+                    .tiles
+                    .get(&axial!(ele.0 .0 as i32, ele.0 .1 as i32))
+                    .unwrap(),
+                ele.1.unwrap()
+            )
+        });
+    }
+
+    #[test]
+    fn extract_shape() {
+        let shape = HexShape::make_rhombus(1, 0, true, || 2);
+        let mut grid = HexGrid::<i32, ()>::default();
+
+        grid.apply_shape(&shape);
+
+        let mut shape = HexShape::make_rhombus(1, 0, true, || 0);
+        grid.extract_shape(&mut shape);
+
+        shape
+            .get_hexes()
+            .iter()
+            .for_each(|ele| assert_eq!(ele.unwrap(), 2));
+    }
 }
