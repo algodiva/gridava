@@ -156,11 +156,13 @@ impl Vertex {
 
 #[cfg(test)]
 mod tests {
+    use crate::hex::vertex::VertexDirection;
+
     use super::{axial, Axial};
     use super::{Vertex, VertexSpin};
 
     #[test]
-    pub fn adjacent_hexes() {
+    fn adjacent_hexes() {
         assert_eq!(
             vertex!(0, 0, VertexSpin::Down).adjacent_hexes(),
             [axial!(0, 0), axial!(0, 1), axial!(-1, 1)]
@@ -176,7 +178,7 @@ mod tests {
     }
 
     #[test]
-    pub fn adjacent_vertices() {
+    fn adjacent_vertices() {
         assert_eq!(
             vertex!(0, 0, VertexSpin::Down).adjacent_vertices(),
             [
@@ -201,5 +203,46 @@ mod tests {
                 vertex!(0, 1, VertexSpin::Up)
             ]
         );
+    }
+
+    #[test]
+    fn from_i32() {
+        for i in 0..=5 {
+            let vd = VertexDirection::from(i);
+            assert_eq!(vd, i.into());
+        }
+    }
+
+    #[test]
+    fn from_vd() {
+        assert_eq!(
+            Vertex::from(VertexDirection::Up),
+            vertex!(0, 0, VertexSpin::Up)
+        );
+        assert_eq!(
+            Vertex::from(VertexDirection::UpRight),
+            vertex!(1, -1, VertexSpin::Down)
+        );
+        assert_eq!(
+            Vertex::from(VertexDirection::DownRight),
+            vertex!(0, 1, VertexSpin::Up)
+        );
+        assert_eq!(
+            Vertex::from(VertexDirection::Down),
+            vertex!(0, 0, VertexSpin::Down)
+        );
+        assert_eq!(
+            Vertex::from(VertexDirection::DownLeft),
+            vertex!(-1, 1, VertexSpin::Up)
+        );
+        assert_eq!(
+            Vertex::from(VertexDirection::UpLeft),
+            vertex!(0, -1, VertexSpin::Down)
+        );
+    }
+
+    #[test]
+    fn default() {
+        assert_eq!(Vertex::default(), vertex!(0, 0, VertexSpin::Up));
     }
 }
