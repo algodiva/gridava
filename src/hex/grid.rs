@@ -212,54 +212,71 @@ mod tests {
     #[test]
     fn world_to_hex() {
         // Size 10 PT
-        let grid = HexGrid::<(), ()> {
+        let grid10p = HexGrid::<(), ()> {
             hex_size: 10.0,
             ..HexGrid::default()
         };
 
-        assert_eq!(grid.world_to_hex((0.0, 0.0)), axial!(0, 0));
-        assert_eq!(grid.world_to_hex((SQRT_3 * 112.0, 0.0)), axial!(11, 0));
-        assert_eq!(grid.world_to_hex((SQRT_3 * 56.0, -470.0)), axial!(21, -31));
-        assert_eq!(grid.world_to_hex((0.0, 640.0)), axial!(-21, 42));
-        assert_eq!(grid.world_to_hex((SQRT_3 * 144.0, 640.0)), axial!(-7, 43));
+        assert_eq!(grid10p.world_to_hex((0.0, 0.0)), axial!(0, 0));
+        assert_eq!(grid10p.world_to_hex((SQRT_3 * 112.0, 0.0)), axial!(11, 0));
+        assert_eq!(
+            grid10p.world_to_hex((SQRT_3 * 56.0, -470.0)),
+            axial!(21, -31)
+        );
+        assert_eq!(grid10p.world_to_hex((0.0, 640.0)), axial!(-21, 42));
+        assert_eq!(
+            grid10p.world_to_hex((SQRT_3 * 144.0, 640.0)),
+            axial!(-7, 43)
+        );
 
         // size 32 PT
-        let grid = HexGrid {
+        let grid32p = HexGrid {
             hex_size: 32.0,
-            ..grid
+            ..grid10p
         };
 
-        assert_eq!(grid.world_to_hex((0.0, 0.0)), axial!(0, 0));
-        assert_eq!(grid.world_to_hex((SQRT_3 * 112.0, 0.0)), axial!(4, 0));
-        assert_eq!(grid.world_to_hex((SQRT_3 * 56.0, -470.0)), axial!(7, -10));
-        assert_eq!(grid.world_to_hex((0.0, 640.0)), axial!(-6, 13));
-        assert_eq!(grid.world_to_hex((SQRT_3 * 144.0, 640.0)), axial!(-2, 13));
-
-        // size 32 FT
-        let grid = HexGrid {
-            hex_size: 32.0,
-            orientation: HexOrientation::FlatTop,
-            ..grid
-        };
-
-        assert_eq!(grid.world_to_hex((0.0, 0.0)), axial!(0, 0));
-        assert_eq!(grid.world_to_hex((SQRT_3 * 112.0, 0.0)), axial!(13, -7)); // TODO: should this not give (13, -6)?
-        assert_eq!(grid.world_to_hex((SQRT_3 * 56.0, -470.0)), axial!(6, -30));
-        assert_eq!(grid.world_to_hex((0.0, 640.0)), axial!(0, 37));
-        assert_eq!(grid.world_to_hex((SQRT_3 * 144.0, 640.0)), axial!(16, 29));
+        assert_eq!(grid32p.world_to_hex((0.0, 0.0)), axial!(0, 0));
+        assert_eq!(grid32p.world_to_hex((SQRT_3 * 112.0, 0.0)), axial!(4, 0));
+        assert_eq!(
+            grid32p.world_to_hex((SQRT_3 * 56.0, -470.0)),
+            axial!(7, -10)
+        );
+        assert_eq!(grid32p.world_to_hex((0.0, 640.0)), axial!(-6, 13));
+        assert_eq!(
+            grid32p.world_to_hex((SQRT_3 * 144.0, 640.0)),
+            axial!(-2, 13)
+        );
 
         // size 10 FT
-        let grid = HexGrid {
+        let grid10f = HexGrid {
             hex_size: 10.0,
             orientation: HexOrientation::FlatTop,
-            ..grid
+            ..grid32p
         };
 
-        assert_eq!(grid.world_to_hex((0.0, 0.0)), axial!(0, 0));
-        assert_eq!(grid.world_to_hex((SQRT_3 * 112.0, 0.0)), axial!(4, -2));
-        assert_eq!(grid.world_to_hex((SQRT_3 * 56.0, -470.0)), axial!(2, -9));
-        assert_eq!(grid.world_to_hex((0.0, 640.0)), axial!(0, 12));
-        assert_eq!(grid.world_to_hex((SQRT_3 * 144.0, 640.0)), axial!(5, 9));
+        assert_eq!(grid10f.world_to_hex((0.0, 0.0)), axial!(0, 0));
+        assert_eq!(grid10f.world_to_hex((SQRT_3 * 112.0, 0.0)), axial!(13, -7)); // TODO: should this not give (13, -6)?
+        assert_eq!(
+            grid10f.world_to_hex((SQRT_3 * 56.0, -470.0)),
+            axial!(6, -30)
+        );
+        assert_eq!(grid10f.world_to_hex((0.0, 640.0)), axial!(0, 37));
+        assert_eq!(
+            grid10f.world_to_hex((SQRT_3 * 144.0, 640.0)),
+            axial!(16, 29)
+        );
+
+        // size 32 FT
+        let grid32f = HexGrid {
+            hex_size: 32.0,
+            ..grid10f
+        };
+
+        assert_eq!(grid32f.world_to_hex((0.0, 0.0)), axial!(0, 0));
+        assert_eq!(grid32f.world_to_hex((SQRT_3 * 112.0, 0.0)), axial!(4, -2));
+        assert_eq!(grid32f.world_to_hex((SQRT_3 * 56.0, -470.0)), axial!(2, -9));
+        assert_eq!(grid32f.world_to_hex((0.0, 640.0)), axial!(0, 12));
+        assert_eq!(grid32f.world_to_hex((SQRT_3 * 144.0, 640.0)), axial!(5, 9));
     }
 
     macro_rules! assert_f64_tuples_near {

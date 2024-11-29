@@ -453,12 +453,12 @@ mod tests {
         );
         assert_eq!(
             HexShape::make_line(4, 0, true, default_tile_fn),
-            HexShape::make_shape(&[axial!(0, 0), axial!(0, 4)], true, default_tile_fn)
+            HexShape::make_shape(&[axial!(0, 0), axial!(4, 0)], true, default_tile_fn)
         );
         assert_eq!(
             HexShape::make_line(2, 1, true, default_tile_fn),
             HexShape::make_shape(
-                &[axial!(0, 2), axial!(1, 2), axial!(2, 2)],
+                &[axial!(0, 0), axial!(0, 1), axial!(0, 2)],
                 true,
                 default_tile_fn
             )
@@ -466,7 +466,7 @@ mod tests {
         assert_eq!(
             HexShape::make_line(2, 2, true, default_tile_fn),
             HexShape::make_shape(
-                &[axial!(0, 4), axial!(1, 4), axial!(2, 4)],
+                &[axial!(2, 0), axial!(1, 1), axial!(0, 2)],
                 true,
                 default_tile_fn
             )

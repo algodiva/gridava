@@ -1048,8 +1048,8 @@ mod tests {
         assert_eq!(
             axial!(1, 1).shared_vert_two(axial!(2, 0)).unwrap(),
             [
+                vertex!(1, 1, VertexSpin::Up),
                 vertex!(2, 0, VertexSpin::Down),
-                vertex!(1, 1, VertexSpin::Up)
             ]
         );
     }
