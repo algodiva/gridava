@@ -1,3 +1,5 @@
+//! Handles vertices in a hexagonal grid.
+
 use super::coordinate::{axial, Axial};
 
 #[cfg(feature = "serde")]
