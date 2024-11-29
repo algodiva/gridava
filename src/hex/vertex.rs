@@ -214,6 +214,16 @@ mod tests {
     }
 
     #[test]
+    fn from_vd_i32() {
+        assert_eq!(i32::from(VertexDirection::Up), 0);
+        assert_eq!(i32::from(VertexDirection::UpRight), 1);
+        assert_eq!(i32::from(VertexDirection::DownRight), 2);
+        assert_eq!(i32::from(VertexDirection::Down), 3);
+        assert_eq!(i32::from(VertexDirection::DownLeft), 4);
+        assert_eq!(i32::from(VertexDirection::UpLeft), 5);
+    }
+
+    #[test]
     fn from_vd() {
         assert_eq!(
             Vertex::from(VertexDirection::Up),

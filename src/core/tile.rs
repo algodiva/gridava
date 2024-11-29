@@ -39,3 +39,19 @@ impl<T: Default + Clone> Default for Tile<T> {
         Self { data: T::default() }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::core::tile::Tile;
+
+    #[test]
+    fn new() {
+        assert_eq!(Tile { data: 1 }, Tile::new(Some(1)));
+        assert_ne!(Tile { data: 1 }, Tile::new(None));
+    }
+
+    #[test]
+    fn default() {
+        assert_eq!(Tile::<i32>::default(), Tile::new(Some(0)));
+    }
+}
