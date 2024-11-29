@@ -1,5 +1,8 @@
 use super::coordinate::{axial, Axial};
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// Vertex spin is a orientation of the vertex.
 ///
 /// A vertex needs to know its `spin`. Spin correlates to which side [`VertexSpin::Up`] or [`VertexSpin::Down`]
