@@ -5,3 +5,4 @@
 pub mod coordinate;
 pub mod grid;
 pub mod shape;
+pub mod vertex;

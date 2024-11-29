@@ -2,7 +2,8 @@
 
 use std::collections::HashMap;
 
-use super::coordinate::{Axial, Vertex};
+use super::coordinate::Axial;
+use super::vertex::Vertex;
 
 use crate::axial;
 
