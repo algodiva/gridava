@@ -301,7 +301,7 @@ impl<T: Clone> HexShape<T> {
     /// let mut my_shape: HexShape<i32> = HexShape::new(None, None);
     /// my_shape.scale(vector2d!(2.0, 2.0));
     /// ```
-    pub fn scale(&mut self, scale: Vector2D<f32>) -> &Self {
+    pub fn scale(mut self, scale: Vector2D<f32>) -> Self {
         // Uses bilinear interpolation algorithm, it's lossless  meaning if you apply a scale and then its inverse
         //  it will return to its original shape.
 
@@ -341,7 +341,7 @@ impl<T: Clone> HexShape<T> {
     }
 
     /// Overwrite the internal working array of the shape.
-    pub fn set_hexes(&mut self, in_arr: Array2<Option<T>>) -> &Self {
+    pub fn set_hexes(mut self, in_arr: Array2<Option<T>>) -> Self {
         self.shape = in_arr;
         self
     }
@@ -444,7 +444,20 @@ mod tests {
     }
 
     #[test]
-    fn test_line() {
+    fn make_shape() {
+        assert_eq!(
+            HexShape::make_shape(&[], true, || 1),
+            HexShape::new(None, None)
+        );
+
+        assert_eq!(
+            HexShape::make_shape(&[axial!(0, 0), axial!(2, 0)], false, || 1).get_hexes(),
+            Array::from_shape_simple_fn((3, 1), || Some(1))
+        )
+    }
+
+    #[test]
+    fn make_line() {
         let default_tile_fn = &Tile::<i32>::default;
 
         assert_eq!(
@@ -471,6 +484,75 @@ mod tests {
                 default_tile_fn
             )
         );
+    }
+
+    #[test]
+    fn make_triangle() {
+        assert_eq!(
+            HexShape::make_triangle(1, 0, true, || 1),
+            HexShape::make_shape(&[axial!(0, 0), axial!(1, 0), axial!(0, 1)], true, || 1)
+        );
+    }
+
+    #[test]
+    fn make_rhombus() {
+        assert_eq!(
+            HexShape::make_rhombus(1, 0, true, || 1),
+            HexShape::make_shape(
+                &[axial!(0, 0), axial!(1, 0), axial!(0, 1), axial!(1, 1)],
+                true,
+                || 1
+            )
+        );
+    }
+
+    #[test]
+    fn scale() {
+        assert_eq!(
+            HexShape::make_rhombus(1, 0, true, || 1).scale(vector2d!(2.0, 2.0)),
+            HexShape::make_rhombus(3, 0, true, || 1)
+        );
+
+        assert_eq!(
+            HexShape::make_rhombus(1, 0, true, || 1)
+                .scale(vector2d!(2.0, 2.0))
+                .scale(vector2d!(0.5, 0.5)),
+            HexShape::make_rhombus(1, 0, true, || 1)
+        );
+    }
+
+    #[test]
+    fn set_origin() {
+        let mut shape = HexShape::<i32>::new(None, None);
+        assert_eq!(
+            shape.set_origin(transform!(axial!(1, 1))).transform,
+            transform!(axial!(1, 1))
+        );
+    }
+
+    #[test]
+    fn set_hexes() {
+        let shape = HexShape::make_rhombus(1, 0, true, || 1);
+        let new_arr = Array::from_shape_simple_fn((1, 1), || Some(1));
+        assert_eq!(shape.set_hexes(new_arr.clone()).get_hexes(), new_arr);
+    }
+
+    #[test]
+    fn get_hexes() {
+        let shape = HexShape::make_rhombus(1, 0, true, || 1);
+        assert_eq!(
+            shape.get_hexes(),
+            Array::from_shape_simple_fn((2, 2), || Some(1))
+        )
+    }
+
+    #[test]
+    fn get_hexes_mut() {
+        let mut shape = HexShape::make_rhombus(1, 0, true, || 1);
+        assert_eq!(
+            shape.get_hexes_mut(),
+            &mut Array::from_shape_simple_fn((2, 2), || Some(1))
+        )
     }
 
     // TODO: scale, get_hexes

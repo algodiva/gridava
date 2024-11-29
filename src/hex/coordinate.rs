@@ -615,6 +615,11 @@ impl Neg for Axial {
 
 #[cfg(test)]
 mod tests {
+    use crate::{
+        core::transform::{vector2d, Vector2D},
+        transform,
+    };
+
     use super::*;
 
     #[test]
@@ -650,6 +655,34 @@ mod tests {
     #[test]
     fn swizzle_r() {
         assert_eq!(axial!(4, 3).swizzle_r(), axial!(-7, 4));
+    }
+
+    #[test]
+    fn apply_transform() {
+        let transform = transform!(axial!(1, 1), 1);
+        assert_eq!(axial!(0, 0).apply_transform(transform), axial!(1, 1));
+        assert_eq!(axial!(1, 1).apply_transform(transform), axial!(0, 2));
+    }
+
+    #[test]
+    fn neighbors() {
+        assert_eq!(
+            axial!(0, 0).neighbors(),
+            [
+                axial!(1, 0),
+                axial!(0, 1),
+                axial!(-1, 1),
+                axial!(-1, 0),
+                axial!(0, -1),
+                axial!(1, -1)
+            ]
+        )
+    }
+
+    #[test]
+    fn are_neighbors() {
+        assert!(axial!(0, 0).are_neighbors(&[axial!(1, 0)]));
+        assert!(!axial!(0, 0).are_neighbors(&[axial!(1, 1)]));
     }
 
     #[test]
@@ -895,6 +928,48 @@ mod tests {
 
     #[test]
     fn shared_vert_two() {
+        assert!(axial!(0, 0).shared_vert_two(axial!(1, 1)).is_none());
+
+        assert_eq!(
+            axial!(0, 0).shared_vert_two(axial!(1, 0)).unwrap(),
+            [
+                vertex!(1, -1, VertexSpin::Down),
+                vertex!(0, 1, VertexSpin::Up),
+            ]
+        );
+
+        assert_eq!(
+            axial!(0, 0).shared_vert_two(axial!(0, 1)).unwrap(),
+            [
+                vertex!(0, 1, VertexSpin::Up),
+                vertex!(0, 0, VertexSpin::Down),
+            ]
+        );
+
+        assert_eq!(
+            axial!(0, 0).shared_vert_two(axial!(-1, 1)).unwrap(),
+            [
+                vertex!(0, 0, VertexSpin::Down),
+                vertex!(-1, 1, VertexSpin::Up),
+            ]
+        );
+
+        assert_eq!(
+            axial!(0, 0).shared_vert_two(axial!(-1, 0)).unwrap(),
+            [
+                vertex!(-1, 1, VertexSpin::Up),
+                vertex!(0, -1, VertexSpin::Down),
+            ]
+        );
+
+        assert_eq!(
+            axial!(0, 0).shared_vert_two(axial!(0, -1)).unwrap(),
+            [
+                vertex!(0, -1, VertexSpin::Down),
+                vertex!(0, 0, VertexSpin::Up),
+            ]
+        );
+
         assert_eq!(
             axial!(1, 1).shared_vert_two(axial!(2, 0)).unwrap(),
             [
@@ -911,6 +986,13 @@ mod tests {
                 .shared_vert_three(axial!(2, 0), axial!(2, 1))
                 .unwrap(),
             vertex!(2, 0, VertexSpin::Down)
+        );
+
+        assert_eq!(
+            axial!(0, 0)
+                .shared_vert_three(axial!(1, 0), axial!(0, 1))
+                .unwrap(),
+            vertex!(0, 1, VertexSpin::Up)
         );
     }
 }
