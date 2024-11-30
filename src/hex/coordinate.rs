@@ -5,6 +5,9 @@ use std::{
     ops::{Add, AddAssign, Div, Mul, Neg, Rem, Sub, SubAssign},
 };
 
+use super::vertex::{vertex, Vertex, VertexSpin};
+use crate::core::transform::Transform;
+
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -39,6 +42,7 @@ pub use axial;
 /// Describes a direction.
 ///
 /// Positive q is the forward vector for a tile, meaning these directions are in relation to that.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(PartialEq, Eq, Debug)]
 pub enum HexDirection {
     Front,
@@ -166,6 +170,23 @@ impl Axial {
         axial!(self.compute_s(), self.q)
     }
 
+    /// Applies a transform matrix to this coordinate.
+    ///
+    /// Scale has no meaning with a point so we do not scale here.
+    ///
+    /// The order of applications is rotation then translation.
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::{Axial, axial};
+    /// use gridava::core::transform::{Transform, transform, Vector2D, vector2d};
+    ///
+    /// let new_coord = axial!(2, 5).apply_transform(transform!(axial!(1, 1), 4));
+    /// ```
+    pub fn apply_transform(&self, transform: Transform<Self>) -> Self {
+        self.rotate(None, transform.rotation) + transform.translation
+    }
+
     /// Make a vector from its components.
     ///
     /// Forms a vector from a location, magnitude and direction.
@@ -200,6 +221,155 @@ impl Axial {
     /// ```
     pub fn neighbor(&self, direction: HexDirection) -> Self {
         self.make_vector(1, direction.into())
+    }
+
+    /// Get all the neighbors for this coordinate.
+    ///
+    /// See [`HexDirection`] for a reference of directionality.
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::{Axial, axial};
+    ///
+    /// let coord = axial!(1, 2);
+    ///
+    /// if axial!(0, 0).neighbors().contains(&coord) {
+    ///     // Do something ...
+    /// }
+    /// ```
+    pub fn neighbors(&self) -> [Self; 6] {
+        [
+            self.neighbor(HexDirection::Front),
+            self.neighbor(HexDirection::FrontRight),
+            self.neighbor(HexDirection::BackRight),
+            self.neighbor(HexDirection::Back),
+            self.neighbor(HexDirection::BackLeft),
+            self.neighbor(HexDirection::FrontLeft),
+        ]
+    }
+
+    /// Checks if ALL of the supplied coordinates are neighbors to self.
+    ///
+    /// See [`Axial::neighbor`].
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::{Axial, axial};
+    ///
+    /// let coord = axial!(1, 2);
+    ///
+    /// if axial!(0, 0).are_neighbors(&[coord]) {
+    ///     // Do something ...
+    /// }
+    /// ```
+    pub fn are_neighbors(&self, coords: &[Self]) -> bool {
+        let neighbors = self.neighbors();
+
+        for coord in coords {
+            if !neighbors.contains(coord) {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// Generates all 6 vertices that are associated with this tile.
+    ///
+    /// See [`Vertex`].
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::vertex::Vertex;
+    /// use gridava::hex::coordinate::{Axial, axial};
+    ///
+    /// axial!(0, 0).vertices().iter().map(|vert| {/* ... */} );
+    ///
+    /// ```
+    pub fn vertices(&self) -> [Vertex; 6] {
+        [
+            vertex!(self.q, self.r, VertexSpin::Up),
+            vertex!(self.q + 1, self.r - 1, VertexSpin::Down),
+            vertex!(self.q, self.r + 1, VertexSpin::Up),
+            vertex!(self.q, self.r, VertexSpin::Down),
+            vertex!(self.q - 1, self.r + 1, VertexSpin::Up),
+            vertex!(self.q, self.r - 1, VertexSpin::Down),
+        ]
+    }
+
+    /// Given two neighboring tiles produce the shared vertices.
+    ///
+    /// See [`Vertex`].
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::vertex::Vertex;
+    /// use gridava::hex::coordinate::{Axial, axial};
+    ///
+    /// let verts = axial!(0, 0).shared_vert_two(axial!(1, 0));
+    ///
+    /// ```
+    pub fn shared_vert_two(&self, b: Self) -> Option<[Vertex; 2]> {
+        for i in 0..=5 {
+            let dir = HexDirection::from(i);
+            let vec = dir.to_movement_vector();
+            if b == vec + *self {
+                // We found the neighbor and its direction.
+                // Front is in the positive q direction here.
+                return match dir {
+                    HexDirection::Front => Some([
+                        vertex!(self.q + 1, self.q - 1, VertexSpin::Down),
+                        vertex!(self.q, self.q + 1, VertexSpin::Up),
+                    ]),
+                    HexDirection::FrontRight => Some([
+                        vertex!(self.q, self.q + 1, VertexSpin::Up),
+                        vertex!(self.q, self.q, VertexSpin::Down),
+                    ]),
+                    HexDirection::BackRight => Some([
+                        vertex!(self.q, self.q, VertexSpin::Down),
+                        vertex!(self.q - 1, self.q + 1, VertexSpin::Up),
+                    ]),
+                    HexDirection::Back => Some([
+                        vertex!(self.q - 1, self.q + 1, VertexSpin::Up),
+                        vertex!(self.q, self.q - 1, VertexSpin::Down),
+                    ]),
+                    HexDirection::BackLeft => Some([
+                        vertex!(self.q, self.q - 1, VertexSpin::Down),
+                        vertex!(self.q, self.q, VertexSpin::Up),
+                    ]),
+                    HexDirection::FrontLeft => Some([
+                        vertex!(self.q, self.q, VertexSpin::Up),
+                        vertex!(self.q + 1, self.q - 1, VertexSpin::Down),
+                    ]),
+                };
+            }
+        }
+        None
+    }
+
+    /// Given three neighboring tiles produce the shared vertex.
+    ///
+    /// See [`Vertex`].
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::vertex::Vertex;
+    /// use gridava::hex::coordinate::{Axial, axial};
+    ///
+    /// let verts = axial!(0, 0).shared_vert_three(axial!(1, 0), axial!(0, 1));
+    ///
+    /// ```
+    pub fn shared_vert_three(&self, b: Self, c: Self) -> Option<Vertex> {
+        let ab_verts = self.shared_vert_two(b)?;
+
+        // If c has vert 0 then we exit with 0
+        if c.vertices().contains(&ab_verts[0]) {
+            Some(ab_verts[0])
+        } else if c.vertices().contains(&ab_verts[1]) {
+            // Otherwise it's the other
+            Some(ab_verts[1])
+        } else {
+            None
+        }
     }
 
     /// Compute distance between two coordinates.
@@ -452,6 +622,11 @@ impl Neg for Axial {
 
 #[cfg(test)]
 mod tests {
+    use crate::{
+        core::transform::{vector2d, Vector2D},
+        transform,
+    };
+
     use super::*;
 
     #[test]
@@ -487,6 +662,34 @@ mod tests {
     #[test]
     fn swizzle_r() {
         assert_eq!(axial!(4, 3).swizzle_r(), axial!(-7, 4));
+    }
+
+    #[test]
+    fn apply_transform() {
+        let transform = transform!(axial!(1, 1), 1);
+        assert_eq!(axial!(0, 0).apply_transform(transform), axial!(1, 1));
+        assert_eq!(axial!(1, 1).apply_transform(transform), axial!(0, 3));
+    }
+
+    #[test]
+    fn neighbors() {
+        assert_eq!(
+            axial!(0, 0).neighbors(),
+            [
+                axial!(1, 0),
+                axial!(0, 1),
+                axial!(-1, 1),
+                axial!(-1, 0),
+                axial!(0, -1),
+                axial!(1, -1)
+            ]
+        )
+    }
+
+    #[test]
+    fn are_neighbors() {
+        assert!(axial!(0, 0).are_neighbors(&[axial!(1, 0)]));
+        assert!(!axial!(0, 0).are_neighbors(&[axial!(1, 1)]));
     }
 
     #[test]
@@ -728,5 +931,83 @@ mod tests {
         assert_eq!(axial!(0, 0).rotate(Some(axial!(1, 1)), 1), axial!(2, -1));
         assert_eq!(axial!(0, 0).rotate(Some(axial!(1, 1)), 2), axial!(3, 0));
         assert_eq!(axial!(0, 0).rotate(Some(axial!(1, 1)), 3), axial!(2, 2));
+    }
+
+    #[test]
+    fn shared_vert_two() {
+        assert!(axial!(0, 0).shared_vert_two(axial!(1, 1)).is_none());
+
+        assert_eq!(
+            axial!(0, 0).shared_vert_two(axial!(1, 0)).unwrap(),
+            [
+                vertex!(1, -1, VertexSpin::Down),
+                vertex!(0, 1, VertexSpin::Up),
+            ]
+        );
+
+        assert_eq!(
+            axial!(0, 0).shared_vert_two(axial!(0, 1)).unwrap(),
+            [
+                vertex!(0, 1, VertexSpin::Up),
+                vertex!(0, 0, VertexSpin::Down),
+            ]
+        );
+
+        assert_eq!(
+            axial!(0, 0).shared_vert_two(axial!(-1, 1)).unwrap(),
+            [
+                vertex!(0, 0, VertexSpin::Down),
+                vertex!(-1, 1, VertexSpin::Up),
+            ]
+        );
+
+        assert_eq!(
+            axial!(0, 0).shared_vert_two(axial!(-1, 0)).unwrap(),
+            [
+                vertex!(-1, 1, VertexSpin::Up),
+                vertex!(0, -1, VertexSpin::Down),
+            ]
+        );
+
+        assert_eq!(
+            axial!(0, 0).shared_vert_two(axial!(0, -1)).unwrap(),
+            [
+                vertex!(0, -1, VertexSpin::Down),
+                vertex!(0, 0, VertexSpin::Up),
+            ]
+        );
+
+        assert_eq!(
+            axial!(1, 1).shared_vert_two(axial!(2, 0)).unwrap(),
+            [
+                vertex!(1, 1, VertexSpin::Up),
+                vertex!(2, 0, VertexSpin::Down),
+            ]
+        );
+    }
+
+    #[test]
+    fn shared_vert_three() {
+        assert_eq!(
+            axial!(1, 1)
+                .shared_vert_three(axial!(2, 0), axial!(2, 1))
+                .unwrap(),
+            vertex!(2, 0, VertexSpin::Down)
+        );
+
+        assert_eq!(
+            axial!(0, 0)
+                .shared_vert_three(axial!(1, 0), axial!(0, 1))
+                .unwrap(),
+            vertex!(0, 1, VertexSpin::Up)
+        );
+
+        assert!(axial!(0, 0)
+            .shared_vert_three(axial!(1, 1), axial!(3, 9))
+            .is_none());
+
+        assert!(axial!(0, 0)
+            .shared_vert_three(axial!(1, 0), axial!(3, 3))
+            .is_none());
     }
 }
