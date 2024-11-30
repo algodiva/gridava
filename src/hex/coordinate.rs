@@ -263,8 +263,10 @@ impl Axial {
     /// }
     /// ```
     pub fn are_neighbors(&self, coords: &[Self]) -> bool {
+        let neighbors = self.neighbors();
+
         for coord in coords {
-            if !self.neighbors().contains(coord) {
+            if !neighbors.contains(coord) {
                 return false;
             }
         }
