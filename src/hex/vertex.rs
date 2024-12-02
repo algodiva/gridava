@@ -1,6 +1,11 @@
 //! Handles vertices in a hexagonal grid.
 
-use super::coordinate::{axial, Axial};
+use crate::edge;
+
+use super::{
+    coordinate::{axial, Axial},
+    edge::{Edge, EdgeDirection},
+};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -113,6 +118,12 @@ impl From<VertexDirection> for Vertex {
     }
 }
 
+impl From<(Axial, VertexSpin)> for Vertex {
+    fn from(value: (Axial, VertexSpin)) -> Self {
+        vertex!(value.0.q, value.0.r, value.1)
+    }
+}
+
 impl Vertex {
     /// Get all 3 adjacent hexes to this vertex.
     ///
@@ -164,6 +175,61 @@ impl Vertex {
             ]
         }
     }
+
+    pub fn adjacent_edges(&self) -> [Edge; 3] {
+        match self.spin {
+            VertexSpin::Up => [
+                edge!(self.q + 1, self.r - 1, EdgeDirection::West),
+                edge!(self.q, self.r, EdgeDirection::NorthEast),
+                edge!(self.q, self.r, EdgeDirection::NorthWest),
+            ],
+            VertexSpin::Down => [
+                edge!(self.q, self.r + 1, EdgeDirection::NorthWest),
+                edge!(self.q, self.r + 1, EdgeDirection::West),
+                edge!(self.q - 1, self.r + 1, EdgeDirection::NorthEast),
+            ],
+        }
+    }
+
+    pub fn distance(&self, b: Self) -> i32 {
+        let dist = axial!(self.q, self.r).distance(axial!(b.q, b.r));
+        let dir = axial!(self.q, self.r).direction(axial!(b.q, b.r));
+        let parity: usize = if self.spin == b.spin {
+            0 // Same
+        } else if self.spin == VertexSpin::Up && b.spin == VertexSpin::Down {
+            1 // NS
+        } else {
+            2 // SN
+        };
+
+        // Define adjustment constants for each parity type
+        const PARITY_ADJUSTMENTS: [[[i32; 6]; 3]; 2] = [
+            // On Axis
+            [
+                [0, 0, 0, 0, 0, 0],   // Same
+                [1, 3, 3, 1, -1, -1], // NS
+                [1, -1, -1, 1, 3, 3], // SN
+            ],
+            // Off Axis
+            [
+                [0, 0, 0, 0, 0, 0],    // Same
+                [1, 3, 1, -1, -1, -1], // NS
+                [-1, -1, -1, 1, 3, 1], // SN
+            ],
+        ];
+
+        // Determine sector index (0 to 5)
+        let sector = ((dir as i32 / 60) % 6) as usize;
+
+        // Coerced bool into usize.
+        let on_axis = (dir.round() as i32 % 60 != 0) as usize;
+
+        // Fetch the appropriate adjustment
+        let base_adjustment = PARITY_ADJUSTMENTS[on_axis][parity][sector];
+
+        // Calculate final distance
+        2 * dist + base_adjustment
+    }
 }
 
 #[cfg(test)]
@@ -214,6 +280,34 @@ mod tests {
                 vertex!(0, 2, VertexSpin::Up),
                 vertex!(0, 1, VertexSpin::Up)
             ]
+        );
+    }
+
+    #[test]
+    fn distance() {
+        assert_eq!(
+            vertex!(0, 0, VertexSpin::Up).distance(vertex!(1, 1, VertexSpin::Up)),
+            4
+        );
+
+        assert_eq!(
+            vertex!(-1, 0, VertexSpin::Up).distance(vertex!(1, 1, VertexSpin::Down)),
+            7
+        );
+
+        assert_eq!(
+            vertex!(0, 0, VertexSpin::Down).distance(vertex!(0, 1, VertexSpin::Up)),
+            1
+        );
+
+        assert_eq!(
+            vertex!(0, 0, VertexSpin::Down).distance(vertex!(0, 1, VertexSpin::Down)),
+            2
+        );
+
+        assert_eq!(
+            vertex!(0, 0, VertexSpin::Down).distance(vertex!(1, -1, VertexSpin::Up)),
+            5
         );
     }
 

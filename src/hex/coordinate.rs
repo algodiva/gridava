@@ -5,7 +5,10 @@ use std::{
     ops::{Add, AddAssign, Div, Mul, Neg, Rem, Sub, SubAssign},
 };
 
-use super::vertex::{vertex, Vertex, VertexSpin};
+use super::{
+    grid::SQRT_3,
+    vertex::{vertex, Vertex, VertexSpin},
+};
 use crate::core::transform::Transform;
 
 #[cfg(feature = "serde")]
@@ -389,6 +392,19 @@ impl Axial {
         (i32::abs(vec.q) + i32::abs(vec.q + vec.r) + i32::abs(vec.r)) / 2
     }
 
+    /// Direction to b from self.
+    ///
+    /// Outputs degrees from hex forward vector, +q, to the target b.
+    /// The
+    pub fn direction(&self, b: Self) -> f64 {
+        // direction to b from the pov of self
+        let vec = b - *self;
+
+        let x = SQRT_3 * vec.q as f64 + SQRT_3 / 2.0 * vec.r as f64;
+        let y = 3.0 / 2.0 * vec.r as f64;
+        -y.atan2(-x).to_degrees() + 180.0
+    }
+
     // utilize f64 to preserve lossless conversion for i32
     fn lerp_internal(a: i32, b: i32, t: f64) -> f64 {
         a as f64 + (b - a) as f64 * t
@@ -622,6 +638,8 @@ impl Neg for Axial {
 
 #[cfg(test)]
 mod tests {
+    use assert_float_eq::*;
+
     use crate::{
         core::transform::{vector2d, Vector2D},
         transform,
@@ -777,6 +795,17 @@ mod tests {
         assert_eq!(Axial::round((2.5, -1.5)), axial!(3, -2));
         assert_eq!(Axial::round((-2.5, -1.5)), axial!(-2, -2));
         assert_eq!(Axial::round((-2.5, 1.5)), axial!(-3, 2));
+    }
+
+    #[test]
+    fn direction() {
+        assert_f64_near!(axial!(0, 0).direction(axial!(2, 0)), 0.0);
+        assert_f64_near!(axial!(0, 0).direction(axial!(0, 2)), 60.0);
+        assert_f64_near!(axial!(0, 0).direction(axial!(-1, 2)), 90.0);
+        assert_f64_near!(axial!(0, 0).direction(axial!(-1, 1)), 120.0);
+        assert_f64_near!(axial!(0, 0).direction(axial!(-1, 0)), 180.0);
+        assert_f64_near!(axial!(0, 0).direction(axial!(2, -1)), 330.0);
+        assert_f64_near!(axial!(0, 0).direction(axial!(2, -2)), 300.0);
     }
 
     #[test]
