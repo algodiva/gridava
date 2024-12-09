@@ -1,25 +1,21 @@
 // SVG file generation for hex grids
 
+use std::collections::HashMap;
+
 use svg::Document;
 use svg::node::element::{Path,SVG,Text};
 use svg::node::element::path::Data;
 
 use crate::hex::grid::{HexGrid,HexOrientation};
-use crate::hex::coordinate::{Axial,axial};
+use crate::hex::coordinate::Axial;
 
+// Constant for now, longer-term should be configurable
 const BASE_SHORT: f64 = 26.0;
-const BASE_LONG: f64 = 45.0;
+#[allow(clippy::excessive_precision)]
+const BASE_LONG: f64 = BASE_SHORT * 1.732050807568877293527446341505872367_f64;
 const PAD: f64 = 10.0;
 
-pub fn render_shape<T: Clone>(orientation: HexOrientation) -> SVG {
-    /*
-    let mut data = render_one_tile::<T>(Data::new(), axial!(0, 0), orientation.clone());
-
-    data = render_one_tile::<T>(data, axial!(1, 0), HexOrientation::PointyTop);
-    data = render_one_tile::<T>(data, axial!(0, 1), HexOrientation::PointyTop);
-    data = render_one_tile::<T>(data, axial!(1, 2), HexOrientation::PointyTop);
-    data = data.close();
-    */
+pub fn render_shape<T: Clone>(tiles: HashMap<Axial, T>, orientation: HexOrientation) -> SVG {
     let grid = HexGrid::<(), ()> {
         orientation: orientation.clone(),
         hex_size: (BASE_SHORT * 2.0) as f32,
@@ -27,14 +23,14 @@ pub fn render_shape<T: Clone>(orientation: HexOrientation) -> SVG {
     };
 
     let mut doc = Document::new();
-    let tiles = [ axial!(0, 0), axial!(1, 0), axial!(0, 1), axial!(1, 3) ];
     let mut max_q = BASE_LONG;
     let mut min_q = -max_q;
     let mut max_r = BASE_SHORT * 2.0;
     let mut min_r = -max_r;
 
-    tiles.map(| coords | {
-        let (base_q, base_r) = grid.hex_to_world(coords);
+    // For now, tile is unused
+    for (coords, _tile) in tiles.iter() {
+        let (base_q, base_r) = grid.hex_to_world(*coords);
         let data = Data::new();
 
         // These only apply for PointyTop
@@ -73,9 +69,9 @@ pub fn render_shape<T: Clone>(orientation: HexOrientation) -> SVG {
         let text = Text::new(txt).set("x", base_q).set("y", base_r).set("text-anchor", "middle").set("font-size", 12);
 
         doc = doc.clone().add(path).add(text);
-    });
+    }
 
-    println!("q: {}/{}; r: {}/{}", min_q, max_q, min_r, max_r);
+    //println!("q: {}/{}; r: {}/{}", min_q, max_q, min_r, max_r);
 
     min_q -= PAD;
     max_q += PAD;
@@ -108,10 +104,17 @@ pub fn save_image(path: &str, document: SVG) -> Result<(), std::io::Error> {
 #[allow(unused_imports)]
 mod tests {
     use super::*;
+    use crate::core::tile::Tile;
+    use crate::hex::shape::HexShape;
 
     #[test]
     fn test_render() {
-        let ret = save_image("test.svg", render_shape::<i32>(HexOrientation::PointyTop));
+        let shape = HexShape::make_rhombus(3, 0, true, || 1);
+        let mut grid = HexGrid::<i32, Tile<i32>>::default();
+
+        grid.apply_shape(&shape);
+
+        let ret = save_image("test.svg", render_shape::<i32>(grid.tiles, HexOrientation::PointyTop));
 
         assert!(ret.is_ok());
     }
