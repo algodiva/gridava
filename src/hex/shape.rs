@@ -21,33 +21,11 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, PartialEq, Debug, Default)]
 pub struct HexShape<T: Clone> {
-    shape: Array2<Option<T>>, // 2D array of tiles, index corresponds to coordinate (q, r). Origin of (0,0) to (+∞,+∞).
-    pub transform: Transform<Axial>, // The transformation matrix to convert from parent grid to local space.
+    /// 2D array of tiles, index corresponds to coordinate (q, r). Origin of (0,0) to (+∞,+∞).
+    shape: Array2<Option<T>>,
+    /// The transformation matrix to convert from parent grid to local space.
+    pub transform: Transform<Axial>,
 }
-
-/// Struct to handle arguments to shape constructors.
-///
-/// `size` field denotes length.
-///
-/// `rot_dir`: positive denotes CW, negative CCW, magnitude denotes how many 60 degree rotations.
-pub struct ShapeArgs {
-    pub size: u32,
-    pub rot_dir: i32,
-    pub square_bb: bool,
-}
-
-/// Helper macro to create [`ShapeArgs`]
-#[macro_export]
-macro_rules! shapeargs {
-    ($s:expr, $rd:expr, $sbb:expr) => {
-        ShapeArgs {
-            size: $s,
-            rot_dir: $rd,
-            square_bb: $sbb,
-        }
-    };
-}
-pub use shapeargs;
 
 impl<T: Clone> HexShape<T> {
     /// Create a new shape.

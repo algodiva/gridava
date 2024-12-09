@@ -24,7 +24,9 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(PartialEq, Eq, Copy, Clone, Hash, Debug, Default)]
 pub struct Axial {
+    /// q (x) coordinate
     pub q: i32,
+    /// r (y) coordinate
     pub r: i32,
 }
 
@@ -49,11 +51,19 @@ pub use axial;
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(PartialEq, Eq, Debug)]
 pub enum HexDirection {
+    /// Direction denoting positive q (x) axis
     Front,
+    /// Direction 60° CW from [`HexDirection::Front`]
+    ///
+    /// This direction is also the positive r (y) axis.
     FrontRight,
+    /// Direction 120° CW from [`HexDirection::Front`]
     BackRight,
+    /// Direction 180° CW from [`HexDirection::Front`]
     Back,
+    /// Direction 240° CW from [`HexDirection::Front`]
     BackLeft,
+    /// Direction 300° CW from [`HexDirection::Front`]
     FrontLeft,
 }
 
@@ -112,8 +122,11 @@ impl HexDirection {
 
 /// Represents the three axes of symmetry in hexagons.
 pub enum Axes {
+    /// q axis of a hexagonal grid
     Q,
+    /// r axis of a hexagonal grid
     R,
+    /// s axis of a hexagonal grid
     S,
 }
 

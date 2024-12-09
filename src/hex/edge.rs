@@ -10,19 +10,27 @@ use super::{
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+/// Orientation of an edge.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
 pub enum EdgeDirection {
+    /// West of the hex.
     West,
+    /// North West of the hex
     NorthWest,
+    /// North East of the hex
     NorthEast,
 }
 
+/// A hexagonal edge.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
 pub struct Edge {
+    /// q (x) coordinate
     pub q: i32,
+    /// r (y) coordinate
     pub r: i32,
+    /// Edge direction
     pub dir: EdgeDirection,
 }
 
@@ -82,6 +90,13 @@ impl Edge {
         }
     }
 
+    /// Get the adjacent edges to this edge.
+    ///
+    /// ```
+    /// use gridava::hex::edge::{Edge, EdgeDirection, edge};
+    ///
+    /// let edges = edge!(0,0, EdgeDirection::West).adjacent_edges();
+    /// ```
     pub fn adjacent_edges(&self) -> [Self; 4] {
         match self.dir {
             EdgeDirection::West => [

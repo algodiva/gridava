@@ -19,7 +19,9 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
 pub enum VertexSpin {
+    /// On top of the hex
     Up,
+    /// On the bottom of the hex
     Down,
 }
 
@@ -31,11 +33,17 @@ pub enum VertexSpin {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum VertexDirection {
+    /// The vertex at the top
     Up,
+    /// The vertex at the top right
     UpRight,
+    /// The vertex at the bottom right
     DownRight,
+    /// The vertex at the bottom
     Down,
+    /// The vertex at the bottom left
     DownLeft,
+    /// The vertex at the top left
     UpLeft,
 }
 
@@ -77,8 +85,11 @@ impl From<VertexDirection> for i32 {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
 pub struct Vertex {
+    /// q (x) coordinate of the vertex
     pub q: i32,
+    /// r (y) coordinate of the vertex
     pub r: i32,
+    /// The vertex orientation
     pub spin: VertexSpin,
 }
 
@@ -176,6 +187,13 @@ impl Vertex {
         }
     }
 
+    /// Generate the edges adjacent to this vertex.
+    ///
+    /// ```
+    /// use gridava::hex::vertex::{Vertex, VertexSpin, vertex};
+    ///
+    /// let edges = vertex!(0,0,VertexSpin::Up).adjacent_edges();
+    /// ```
     pub fn adjacent_edges(&self) -> [Edge; 3] {
         match self.spin {
             VertexSpin::Up => [
@@ -191,6 +209,13 @@ impl Vertex {
         }
     }
 
+    /// Compute the L1 distance between two vertices.
+    ///
+    /// ```
+    /// use gridava::hex::vertex::{Vertex, VertexSpin, vertex};
+    ///
+    /// let dist = vertex!(0,0,VertexSpin::Up).distance(vertex!(1,0,VertexSpin::Up));
+    /// ```
     pub fn distance(&self, b: Self) -> i32 {
         let dist = axial!(self.q, self.r).distance(axial!(b.q, b.r));
         let dir = axial!(self.q, self.r).direction(axial!(b.q, b.r));
@@ -300,7 +325,7 @@ mod tests {
         );
 
         assert_eq!(
-            vertex!(0, 0, VertexSpin::Up).adjacent_edges(),
+            vertex!(0, 0, VertexSpin::Down).adjacent_edges(),
             [
                 edge!(0, 1, EdgeDirection::NorthWest),
                 edge!(0, 1, EdgeDirection::West),
