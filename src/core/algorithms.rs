@@ -11,8 +11,8 @@ pub enum FFError {
     InvalidSeed,
 }
 
-#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for FFError {
+    #[cfg_attr(coverage_nightly, coverage(off))]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             FFError::InvalidSeed => {
