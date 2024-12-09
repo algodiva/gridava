@@ -18,7 +18,7 @@ const PAD: f64 = 10.0;
 /// # Example
 /// ```
 /// /// ...
-/// use gridava::hex::grid::render;
+/// use gridava::hex::grid::render_svg;
 ///
 /// let my_grid = HexGrid::<i32, ()>::default();
 /// let svg = render_svg(my_grid);
@@ -83,8 +83,6 @@ pub fn render_svg<T: Clone>(grid: HexGrid<i32, Tile<T>>) -> SVG {
         doc = doc.clone().add(path).add(text);
     }
 
-    //println!("q: {}/{}; r: {}/{}", min_q, max_q, min_r, max_r);
-
     min_q -= PAD;
     max_q += PAD;
     min_r -= PAD;
@@ -114,7 +112,7 @@ pub fn render_svg<T: Clone>(grid: HexGrid<i32, Tile<T>>) -> SVG {
 /// # Example
 /// ```
 /// /// ...
-/// use gridava::hex::grid::render;
+/// use gridava::hex::grid::{render_svg,save_svg};
 ///
 /// let my_grid = HexGrid::<i32, ()>::default();
 /// let svg = render_svg(my_grid);
