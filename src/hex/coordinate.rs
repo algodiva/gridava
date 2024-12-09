@@ -6,10 +6,11 @@ use std::{
 };
 
 use super::{
+    edge::{Edge, EdgeDirection},
     grid::SQRT_3,
     vertex::{vertex, Vertex, VertexSpin},
 };
-use crate::core::transform::Transform;
+use crate::{core::transform::Transform, edge};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -296,6 +297,29 @@ impl Axial {
             vertex!(self.q, self.r, VertexSpin::Down),
             vertex!(self.q - 1, self.r + 1, VertexSpin::Up),
             vertex!(self.q, self.r - 1, VertexSpin::Down),
+        ]
+    }
+
+    /// Generates all 6 edges that are associated with this tile.
+    ///
+    /// See [`Vertex`].
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::edge::Edge;
+    /// use gridava::hex::coordinate::{Axial, axial};
+    ///
+    /// axial!(0, 0).edges().iter().map(|edge| {/* ... */} );
+    ///
+    /// ```
+    pub fn edges(&self) -> [Edge; 6] {
+        [
+            edge!(self.q, self.r, EdgeDirection::NorthEast),
+            edge!(self.q + 1, self.r, EdgeDirection::West),
+            edge!(self.q, self.r + 1, EdgeDirection::NorthWest),
+            edge!(self.q - 1, self.r + 1, EdgeDirection::NorthEast),
+            edge!(self.q, self.r, EdgeDirection::West),
+            edge!(self.q, self.r, EdgeDirection::NorthWest),
         ]
     }
 
