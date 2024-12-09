@@ -11,6 +11,7 @@ pub enum FFError {
     InvalidSeed,
 }
 
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for FFError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -207,6 +208,22 @@ mod tests {
                 [1, 1, 1, 4, 0, 1, 1, 0],
                 [1, 1, 1, 4, 0, 0, 1, 0],
                 [1, 1, 1, 4, 0, 0, 1, 0]
+            ]
+        );
+
+        let mut arr4 = arr.clone();
+        assert!(super::flood_fill(&mut arr4, (4, 5), 1, eq_pred).is_ok());
+        assert_eq!(
+            arr4,
+            array![
+                [0, 0, 0, 3, 1, 1, 1, 0],
+                [0, 0, 0, 3, 1, 1, 1, 0],
+                [0, 0, 0, 3, 1, 1, 1, 0],
+                [2, 2, 2, 3, 1, 1, 1, 0],
+                [0, 0, 0, 3, 1, 1, 1, 0],
+                [0, 0, 0, 3, 0, 1, 1, 0],
+                [0, 0, 0, 3, 0, 0, 1, 0],
+                [0, 0, 0, 3, 0, 0, 1, 0]
             ]
         );
     }

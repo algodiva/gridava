@@ -19,3 +19,6 @@ assert_float_eq = "1"
 
 [features]
 serde = ["dep:serde", "ndarray/serde"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)'] }
