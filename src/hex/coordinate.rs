@@ -679,6 +679,11 @@ mod tests {
     }
 
     #[test]
+    fn from_tuple() {
+        assert_eq!(<(i32, i32)>::from(axial!(0, 0)), (0, 0));
+    }
+
+    #[test]
     fn hex_dir_from() {
         assert!(HexDirection::from(0) == HexDirection::Front);
         assert!(HexDirection::from(5) == HexDirection::from(-1));
@@ -987,6 +992,21 @@ mod tests {
     }
 
     #[test]
+    fn edges() {
+        assert_eq!(
+            axial!(0, 0).edges(),
+            [
+                edge!(0, 0, EdgeDirection::NorthEast),
+                edge!(1, 0, EdgeDirection::West),
+                edge!(0, 1, EdgeDirection::NorthWest),
+                edge!(-1, 1, EdgeDirection::NorthEast),
+                edge!(0, 0, EdgeDirection::West),
+                edge!(0, 0, EdgeDirection::NorthWest),
+            ]
+        )
+    }
+
+    #[test]
     fn shared_vert_two() {
         assert!(axial!(0, 0).shared_vert_two(axial!(1, 1)).is_none());
 
@@ -1046,6 +1066,13 @@ mod tests {
                 .shared_vert_three(axial!(2, 0), axial!(2, 1))
                 .unwrap(),
             vertex!(2, 0, VertexSpin::Down)
+        );
+
+        assert_eq!(
+            axial!(1, 1)
+                .shared_vert_three(axial!(1, 2), axial!(2, 1))
+                .unwrap(),
+            vertex!(1, 2, VertexSpin::Up)
         );
 
         assert_eq!(

@@ -48,7 +48,7 @@ impl From<i32> for VertexDirection {
             3 => VertexDirection::Down,
             4 => VertexDirection::DownLeft,
             5 => VertexDirection::UpLeft,
-            _ => panic!(), // should never reach
+            _ => unreachable!(), // should never reach
         }
     }
 }
@@ -234,10 +234,15 @@ impl Vertex {
 
 #[cfg(test)]
 mod tests {
-    use crate::hex::vertex::VertexDirection;
+    use super::*;
 
-    use super::{axial, Axial};
-    use super::{Vertex, VertexSpin};
+    #[test]
+    fn from_axial() {
+        assert_eq!(
+            Vertex::from((axial!(0, 0), VertexSpin::Up)),
+            vertex!(0, 0, VertexSpin::Up)
+        );
+    }
 
     #[test]
     fn adjacent_hexes() {
@@ -279,6 +284,27 @@ mod tests {
                 vertex!(1, 1, VertexSpin::Up),
                 vertex!(0, 2, VertexSpin::Up),
                 vertex!(0, 1, VertexSpin::Up)
+            ]
+        );
+    }
+
+    #[test]
+    fn adjacent_edges() {
+        assert_eq!(
+            vertex!(0, 0, VertexSpin::Up).adjacent_edges(),
+            [
+                edge!(1, -1, EdgeDirection::West),
+                edge!(0, 0, EdgeDirection::NorthEast),
+                edge!(0, 0, EdgeDirection::NorthWest),
+            ]
+        );
+
+        assert_eq!(
+            vertex!(0, 0, VertexSpin::Up).adjacent_edges(),
+            [
+                edge!(0, 1, EdgeDirection::NorthWest),
+                edge!(0, 1, EdgeDirection::West),
+                edge!(-1, 1, EdgeDirection::NorthEast),
             ]
         );
     }

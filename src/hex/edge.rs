@@ -133,9 +133,133 @@ impl Edge {
             ],
         }
     }
+}
 
-    /// Compute the distance between two edges.
-    pub fn distance(&self, b: Self) -> i32 {
-        self.endpoints()[0].distance(b.endpoints()[0])
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default() {
+        assert_eq!(Edge::default(), edge!(0, 0, EdgeDirection::West));
+    }
+
+    #[test]
+    fn from_hexdir() {
+        assert_eq!(
+            Edge::from(HexDirection::Front),
+            edge!(1, 0, EdgeDirection::West)
+        );
+
+        assert_eq!(
+            Edge::from(HexDirection::FrontRight),
+            edge!(0, 1, EdgeDirection::NorthWest)
+        );
+
+        assert_eq!(
+            Edge::from(HexDirection::BackRight),
+            edge!(-1, 1, EdgeDirection::NorthEast)
+        );
+
+        assert_eq!(
+            Edge::from(HexDirection::Back),
+            edge!(0, 0, EdgeDirection::West)
+        );
+
+        assert_eq!(
+            Edge::from(HexDirection::BackLeft),
+            edge!(0, 0, EdgeDirection::NorthWest)
+        );
+
+        assert_eq!(
+            Edge::from(HexDirection::FrontLeft),
+            edge!(0, 0, EdgeDirection::NorthEast)
+        );
+    }
+
+    #[test]
+    fn adjacent_hexes() {
+        assert_eq!(
+            edge!(0, 0, EdgeDirection::West).adjacent_hexes(),
+            [axial!(0, 0), axial!(-1, 0)]
+        );
+
+        assert_eq!(
+            edge!(0, 0, EdgeDirection::NorthWest).adjacent_hexes(),
+            [axial!(0, 0), axial!(0, -1)]
+        );
+
+        assert_eq!(
+            edge!(0, 0, EdgeDirection::NorthEast).adjacent_hexes(),
+            [axial!(0, 0), axial!(1, -1)]
+        );
+    }
+
+    #[test]
+    fn adjacent_edges() {
+        assert_eq!(
+            edge!(0, 0, EdgeDirection::West).adjacent_edges(),
+            [
+                edge!(-1, 1, EdgeDirection::NorthEast),
+                edge!(0, 0, EdgeDirection::NorthWest),
+                edge!(-1, 1, EdgeDirection::NorthWest),
+                edge!(-1, 0, EdgeDirection::NorthEast),
+            ]
+        );
+
+        assert_eq!(
+            edge!(0, 0, EdgeDirection::NorthWest).adjacent_edges(),
+            [
+                edge!(1, -1, EdgeDirection::West),
+                edge!(0, 0, EdgeDirection::NorthEast),
+                edge!(0, 0, EdgeDirection::West),
+                edge!(-1, 0, EdgeDirection::NorthEast),
+            ]
+        );
+
+        assert_eq!(
+            edge!(0, 0, EdgeDirection::NorthEast).adjacent_edges(),
+            [
+                edge!(1, 0, EdgeDirection::NorthWest),
+                edge!(1, 0, EdgeDirection::West),
+                edge!(0, 0, EdgeDirection::NorthWest),
+                edge!(1, -1, EdgeDirection::West),
+            ]
+        );
+    }
+
+    #[test]
+    fn endpoints() {
+        assert_eq!(
+            edge!(0, 0, EdgeDirection::West).endpoints(),
+            [
+                vertex!(-1, 1, VertexSpin::Up),
+                vertex!(0, -1, VertexSpin::Down),
+            ]
+        );
+
+        assert_eq!(
+            edge!(0, 0, EdgeDirection::NorthWest).endpoints(),
+            [
+                vertex!(0, -1, VertexSpin::Down),
+                vertex!(0, 0, VertexSpin::Up),
+            ]
+        );
+
+        assert_eq!(
+            edge!(0, 0, EdgeDirection::NorthEast).endpoints(),
+            [
+                vertex!(0, 0, VertexSpin::Up),
+                vertex!(1, -1, VertexSpin::Down),
+            ]
+        );
+
+        assert_eq!(
+            edge!(1, 0, EdgeDirection::NorthEast).endpoints(),
+            [
+                vertex!(1, 0, VertexSpin::Up),
+                vertex!(2, -1, VertexSpin::Down),
+            ]
+        );
     }
 }
