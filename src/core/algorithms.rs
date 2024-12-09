@@ -55,7 +55,7 @@ pub fn flood_fill<T, F>(
     mut pred: F,
 ) -> Result<(), FFError>
 where
-    T: Clone + PartialEq,
+    T: Clone,
     F: FnMut(&T, &T) -> bool,
 {
     let (seed_x, seed_y) = seed;
