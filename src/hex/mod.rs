@@ -3,6 +3,7 @@
 //! TODO: Examples.
 //!
 pub mod coordinate;
+pub mod edge;
 pub mod grid;
 pub mod render;
 pub mod shape;

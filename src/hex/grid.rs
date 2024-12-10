@@ -2,8 +2,8 @@
 
 use std::collections::HashMap;
 
-use super::coordinate::Axial;
 use super::vertex::Vertex;
+use super::{coordinate::Axial, edge::Edge};
 
 use crate::axial;
 
@@ -15,7 +15,9 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HexOrientation {
+    /// The top of a hexagon is flat
     FlatTop,
+    /// The top of a hexagon is pointy
     PointyTop,
 }
 
@@ -31,25 +33,32 @@ pub const SQRT_3: f64 = 1.732050807568877293527446341505872367_f64;
 /// Contains useful functions to convert to and from world space and grid coordinates.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
-pub struct HexGrid<T: Clone, V> {
+pub struct HexGrid<T: Clone, V, E> {
+    /// Orientation of a hexagonal grid
     pub orientation: HexOrientation,
+    /// Size of an individual hexagon
     pub hex_size: f32,
+    /// Collection of tiles for the gird
     pub tiles: HashMap<Axial, T>,
+    /// Collection of vertices for the grid
     pub vertices: HashMap<Vertex, V>,
+    /// Collection of edges for the grid
+    pub edges: HashMap<Edge, E>,
 }
 
-impl<T: Clone, V> Default for HexGrid<T, V> {
+impl<T: Clone, V, E> Default for HexGrid<T, V, E> {
     fn default() -> Self {
         Self {
             orientation: HexOrientation::PointyTop,
             hex_size: 32.0,
             tiles: Default::default(),
             vertices: Default::default(),
+            edges: Default::default(),
         }
     }
 }
 
-impl<T: Clone, V> HexGrid<T, V> {
+impl<T: Clone, V, E> HexGrid<T, V, E> {
     /// Convert from worldspace to hex coordinates.
     ///
     /// Takes in a float 64 tuple of the form (x, y) and outputs the coordinates of the nearest tile.
@@ -60,7 +69,7 @@ impl<T: Clone, V> HexGrid<T, V> {
     /// /// ...
     /// use gridava::hex::grid::HexGrid;
     ///
-    /// let my_grid = HexGrid::<i32, ()>::default();
+    /// let my_grid = HexGrid::<i32, (), ()>::default();
     /// let nearest_tile = my_grid.world_to_hex(my_object_pos);
     /// ```
     ///
@@ -105,7 +114,7 @@ impl<T: Clone, V> HexGrid<T, V> {
     /// use gridava::hex::grid::HexGrid;
     /// use gridava::hex::coordinate::{Axial, axial};
     ///
-    /// let my_grid = HexGrid::<i32, ()>::default();
+    /// let my_grid = HexGrid::<i32, (), ()>::default();
     /// let world_pos = my_grid.hex_to_world(axial!(12, 33));
     /// ```
     ///
@@ -143,7 +152,7 @@ impl<T: Clone, V> HexGrid<T, V> {
     ///     pub my_int: i32,
     /// }
     ///
-    /// let mut my_grid = HexGrid::<MyData, ()>::default();
+    /// let mut my_grid = HexGrid::<MyData, (), ()>::default();
     /// let my_shape = HexShape::make_triangle(1, 0, true, MyData::default);
     ///
     /// my_grid.apply_shape(&my_shape);
@@ -175,7 +184,7 @@ impl<T: Clone, V> HexGrid<T, V> {
     ///     pub my_int: i32,
     /// }
     ///
-    /// let my_grid = HexGrid::<MyData, ()>::default();
+    /// let my_grid = HexGrid::<MyData, (), ()>::default();
     ///
     /// // ... generate data in grid
     ///
@@ -203,7 +212,7 @@ mod tests {
 
     #[test]
     fn default() {
-        let def = HexGrid::<(), ()>::default();
+        let def = HexGrid::<(), (), ()>::default();
 
         assert_eq!(def.orientation, HexOrientation::PointyTop);
         assert_eq!(def.hex_size, 32.0);
@@ -213,7 +222,7 @@ mod tests {
     #[test]
     fn world_to_hex() {
         // Size 10 PT
-        let grid10p = HexGrid::<(), ()> {
+        let grid10p = HexGrid::<(), (), ()> {
             hex_size: 10.0,
             ..HexGrid::default()
         };
@@ -291,7 +300,7 @@ mod tests {
     #[test]
     fn hex_to_world() {
         // Size 10 PT
-        let grid = HexGrid::<(), ()> {
+        let grid = HexGrid::<(), (), ()> {
             hex_size: 10.0,
             ..HexGrid::default()
         };
@@ -376,7 +385,7 @@ mod tests {
 
     #[test]
     fn two_way_identity() {
-        let pt10p = HexGrid::<(), ()> {
+        let pt10p = HexGrid::<(), (), ()> {
             hex_size: 10.0,
             ..HexGrid::default()
         };
@@ -400,7 +409,7 @@ mod tests {
     #[test]
     fn apply_shape() {
         let shape = HexShape::make_rhombus(1, 0, true, || 1);
-        let mut grid = HexGrid::<i32, ()>::default();
+        let mut grid = HexGrid::<i32, (), ()>::default();
 
         grid.apply_shape(&shape);
 
@@ -418,7 +427,7 @@ mod tests {
     #[test]
     fn extract_shape() {
         let shape = HexShape::make_rhombus(1, 0, true, || 2);
-        let mut grid = HexGrid::<i32, ()>::default();
+        let mut grid = HexGrid::<i32, (), ()>::default();
 
         grid.apply_shape(&shape);
 

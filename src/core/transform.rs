@@ -1,3 +1,5 @@
+//! Transformation matrix for coordinate systems.
+
 use std::ops::{Add, AddAssign, Mul, MulAssign, Neg};
 
 #[cfg(feature = "serde")]

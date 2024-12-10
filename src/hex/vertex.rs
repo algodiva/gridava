@@ -1,6 +1,11 @@
 //! Handles vertices in a hexagonal grid.
 
-use super::coordinate::{axial, Axial};
+use crate::edge;
+
+use super::{
+    coordinate::{axial, Axial},
+    edge::{Edge, EdgeDirection},
+};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -14,7 +19,9 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
 pub enum VertexSpin {
+    /// On top of the hex
     Up,
+    /// On the bottom of the hex
     Down,
 }
 
@@ -26,11 +33,17 @@ pub enum VertexSpin {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum VertexDirection {
+    /// The vertex at the top
     Up,
+    /// The vertex at the top right
     UpRight,
+    /// The vertex at the bottom right
     DownRight,
+    /// The vertex at the bottom
     Down,
+    /// The vertex at the bottom left
     DownLeft,
+    /// The vertex at the top left
     UpLeft,
 }
 
@@ -43,7 +56,7 @@ impl From<i32> for VertexDirection {
             3 => VertexDirection::Down,
             4 => VertexDirection::DownLeft,
             5 => VertexDirection::UpLeft,
-            _ => panic!(), // should never reach
+            _ => unreachable!(), // should never reach
         }
     }
 }
@@ -72,8 +85,11 @@ impl From<VertexDirection> for i32 {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
 pub struct Vertex {
+    /// q (x) coordinate of the vertex
     pub q: i32,
+    /// r (y) coordinate of the vertex
     pub r: i32,
+    /// The vertex orientation
     pub spin: VertexSpin,
 }
 
@@ -110,6 +126,12 @@ impl From<VertexDirection> for Vertex {
             VertexDirection::DownLeft => vertex!(-1, 1, VertexSpin::Up),
             VertexDirection::UpLeft => vertex!(0, -1, VertexSpin::Down),
         }
+    }
+}
+
+impl From<(Axial, VertexSpin)> for Vertex {
+    fn from(value: (Axial, VertexSpin)) -> Self {
+        vertex!(value.0.q, value.0.r, value.1)
     }
 }
 
@@ -164,14 +186,88 @@ impl Vertex {
             ]
         }
     }
+
+    /// Generate the edges adjacent to this vertex.
+    ///
+    /// ```
+    /// use gridava::hex::vertex::{Vertex, VertexSpin, vertex};
+    ///
+    /// let edges = vertex!(0,0,VertexSpin::Up).adjacent_edges();
+    /// ```
+    pub fn adjacent_edges(&self) -> [Edge; 3] {
+        match self.spin {
+            VertexSpin::Up => [
+                edge!(self.q + 1, self.r - 1, EdgeDirection::West),
+                edge!(self.q, self.r, EdgeDirection::NorthEast),
+                edge!(self.q, self.r, EdgeDirection::NorthWest),
+            ],
+            VertexSpin::Down => [
+                edge!(self.q, self.r + 1, EdgeDirection::NorthWest),
+                edge!(self.q, self.r + 1, EdgeDirection::West),
+                edge!(self.q - 1, self.r + 1, EdgeDirection::NorthEast),
+            ],
+        }
+    }
+
+    /// Compute the L1 distance between two vertices.
+    ///
+    /// ```
+    /// use gridava::hex::vertex::{Vertex, VertexSpin, vertex};
+    ///
+    /// let dist = vertex!(0,0,VertexSpin::Up).distance(vertex!(1,0,VertexSpin::Up));
+    /// ```
+    pub fn distance(&self, b: Self) -> i32 {
+        let dist = axial!(self.q, self.r).distance(axial!(b.q, b.r));
+        let dir = axial!(self.q, self.r).direction(axial!(b.q, b.r));
+        let parity: usize = if self.spin == b.spin {
+            0 // Same
+        } else if self.spin == VertexSpin::Up && b.spin == VertexSpin::Down {
+            1 // NS
+        } else {
+            2 // SN
+        };
+
+        // Define adjustment constants for each parity type
+        const PARITY_ADJUSTMENTS: [[[i32; 6]; 3]; 2] = [
+            // On Axis
+            [
+                [0, 0, 0, 0, 0, 0],   // Same
+                [1, 3, 3, 1, -1, -1], // NS
+                [1, -1, -1, 1, 3, 3], // SN
+            ],
+            // Off Axis
+            [
+                [0, 0, 0, 0, 0, 0],    // Same
+                [1, 3, 1, -1, -1, -1], // NS
+                [-1, -1, -1, 1, 3, 1], // SN
+            ],
+        ];
+
+        // Determine sector index (0 to 5)
+        let sector = ((dir as i32 / 60) % 6) as usize;
+
+        // Coerced bool into usize.
+        let on_axis = (dir.round() as i32 % 60 != 0) as usize;
+
+        // Fetch the appropriate adjustment
+        let base_adjustment = PARITY_ADJUSTMENTS[on_axis][parity][sector];
+
+        // Calculate final distance
+        2 * dist + base_adjustment
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::hex::vertex::VertexDirection;
+    use super::*;
 
-    use super::{axial, Axial};
-    use super::{Vertex, VertexSpin};
+    #[test]
+    fn from_axial() {
+        assert_eq!(
+            Vertex::from((axial!(0, 0), VertexSpin::Up)),
+            vertex!(0, 0, VertexSpin::Up)
+        );
+    }
 
     #[test]
     fn adjacent_hexes() {
@@ -214,6 +310,65 @@ mod tests {
                 vertex!(0, 2, VertexSpin::Up),
                 vertex!(0, 1, VertexSpin::Up)
             ]
+        );
+    }
+
+    #[test]
+    fn adjacent_edges() {
+        assert_eq!(
+            vertex!(0, 0, VertexSpin::Up).adjacent_edges(),
+            [
+                edge!(1, -1, EdgeDirection::West),
+                edge!(0, 0, EdgeDirection::NorthEast),
+                edge!(0, 0, EdgeDirection::NorthWest),
+            ]
+        );
+
+        assert_eq!(
+            vertex!(0, 0, VertexSpin::Down).adjacent_edges(),
+            [
+                edge!(0, 1, EdgeDirection::NorthWest),
+                edge!(0, 1, EdgeDirection::West),
+                edge!(-1, 1, EdgeDirection::NorthEast),
+            ]
+        );
+    }
+
+    #[test]
+    fn distance() {
+        assert_eq!(
+            vertex!(0, 0, VertexSpin::Up).distance(vertex!(1, 1, VertexSpin::Up)),
+            4
+        );
+
+        assert_eq!(
+            vertex!(-1, 0, VertexSpin::Up).distance(vertex!(1, 1, VertexSpin::Down)),
+            7
+        );
+
+        assert_eq!(
+            vertex!(0, 0, VertexSpin::Down).distance(vertex!(0, 1, VertexSpin::Up)),
+            1
+        );
+
+        assert_eq!(
+            vertex!(0, 0, VertexSpin::Down).distance(vertex!(0, 1, VertexSpin::Down)),
+            2
+        );
+
+        assert_eq!(
+            vertex!(0, 0, VertexSpin::Down).distance(vertex!(1, -1, VertexSpin::Up)),
+            5
+        );
+
+        assert_eq!(
+            vertex!(0, 0, VertexSpin::Up).distance(vertex!(2, -1, VertexSpin::Up)),
+            4
+        );
+
+        assert_eq!(
+            vertex!(-1, 0, VertexSpin::Up).distance(vertex!(1, 1, VertexSpin::Up)),
+            6
         );
     }
 
