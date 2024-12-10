@@ -5,8 +5,12 @@ use std::{
     ops::{Add, AddAssign, Div, Mul, Neg, Rem, Sub, SubAssign},
 };
 
-use super::vertex::{vertex, Vertex, VertexSpin};
-use crate::core::transform::Transform;
+use super::{
+    edge::{Edge, EdgeDirection},
+    grid::SQRT_3,
+    vertex::{vertex, Vertex, VertexSpin},
+};
+use crate::{core::transform::Transform, edge};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -20,7 +24,9 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(PartialEq, Eq, Copy, Clone, Hash, Debug, Default)]
 pub struct Axial {
+    /// q (x) coordinate
     pub q: i32,
+    /// r (y) coordinate
     pub r: i32,
 }
 
@@ -45,11 +51,19 @@ pub use axial;
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(PartialEq, Eq, Debug)]
 pub enum HexDirection {
+    /// Direction denoting positive q (x) axis
     Front,
+    /// Direction 60° CW from [`HexDirection::Front`]
+    ///
+    /// This direction is also the positive r (y) axis.
     FrontRight,
+    /// Direction 120° CW from [`HexDirection::Front`]
     BackRight,
+    /// Direction 180° CW from [`HexDirection::Front`]
     Back,
+    /// Direction 240° CW from [`HexDirection::Front`]
     BackLeft,
+    /// Direction 300° CW from [`HexDirection::Front`]
     FrontLeft,
 }
 
@@ -108,8 +122,11 @@ impl HexDirection {
 
 /// Represents the three axes of symmetry in hexagons.
 pub enum Axes {
+    /// q axis of a hexagonal grid
     Q,
+    /// r axis of a hexagonal grid
     R,
+    /// s axis of a hexagonal grid
     S,
 }
 
@@ -296,6 +313,29 @@ impl Axial {
         ]
     }
 
+    /// Generates all 6 edges that are associated with this tile.
+    ///
+    /// See [`Vertex`].
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::edge::Edge;
+    /// use gridava::hex::coordinate::{Axial, axial};
+    ///
+    /// axial!(0, 0).edges().iter().map(|edge| {/* ... */} );
+    ///
+    /// ```
+    pub fn edges(&self) -> [Edge; 6] {
+        [
+            edge!(self.q, self.r, EdgeDirection::NorthEast),
+            edge!(self.q + 1, self.r, EdgeDirection::West),
+            edge!(self.q, self.r + 1, EdgeDirection::NorthWest),
+            edge!(self.q - 1, self.r + 1, EdgeDirection::NorthEast),
+            edge!(self.q, self.r, EdgeDirection::West),
+            edge!(self.q, self.r, EdgeDirection::NorthWest),
+        ]
+    }
+
     /// Given two neighboring tiles produce the shared vertices.
     ///
     /// See [`Vertex`].
@@ -387,6 +427,19 @@ impl Axial {
     pub fn distance(&self, b: Self) -> i32 {
         let vec = *self - b;
         (i32::abs(vec.q) + i32::abs(vec.q + vec.r) + i32::abs(vec.r)) / 2
+    }
+
+    /// Direction to b from self.
+    ///
+    /// Outputs degrees from hex forward vector, +q, to the target b.
+    /// The range of output is `0.0..360.0`
+    pub fn direction(&self, b: Self) -> f64 {
+        // direction to b from the pov of self
+        let vec = b - *self;
+
+        let x = SQRT_3 * vec.q as f64 + SQRT_3 / 2.0 * vec.r as f64;
+        let y = 3.0 / 2.0 * vec.r as f64;
+        -y.atan2(-x).to_degrees() + 180.0
     }
 
     // utilize f64 to preserve lossless conversion for i32
@@ -622,6 +675,8 @@ impl Neg for Axial {
 
 #[cfg(test)]
 mod tests {
+    use assert_float_eq::*;
+
     use crate::{
         core::transform::{vector2d, Vector2D},
         transform,
@@ -634,6 +689,11 @@ mod tests {
         assert_eq!(Axial { q: 4, r: 3 }, axial!(4, 3));
         assert_ne!(Axial { q: 2, r: -1 }, axial!(1, -1));
         assert_ne!(Axial { q: 2, r: -1 }, axial!(2, -2));
+    }
+
+    #[test]
+    fn from_tuple() {
+        assert_eq!(<(i32, i32)>::from(axial!(0, 0)), (0, 0));
     }
 
     #[test]
@@ -777,6 +837,17 @@ mod tests {
         assert_eq!(Axial::round((2.5, -1.5)), axial!(3, -2));
         assert_eq!(Axial::round((-2.5, -1.5)), axial!(-2, -2));
         assert_eq!(Axial::round((-2.5, 1.5)), axial!(-3, 2));
+    }
+
+    #[test]
+    fn direction() {
+        assert_f64_near!(axial!(0, 0).direction(axial!(2, 0)), 0.0);
+        assert_f64_near!(axial!(0, 0).direction(axial!(0, 2)), 60.0);
+        assert_f64_near!(axial!(0, 0).direction(axial!(-1, 2)), 90.0);
+        assert_f64_near!(axial!(0, 0).direction(axial!(-1, 1)), 120.0);
+        assert_f64_near!(axial!(0, 0).direction(axial!(-1, 0)), 180.0);
+        assert_f64_near!(axial!(0, 0).direction(axial!(2, -1)), 330.0);
+        assert_f64_near!(axial!(0, 0).direction(axial!(2, -2)), 300.0);
     }
 
     #[test]
@@ -934,6 +1005,21 @@ mod tests {
     }
 
     #[test]
+    fn edges() {
+        assert_eq!(
+            axial!(0, 0).edges(),
+            [
+                edge!(0, 0, EdgeDirection::NorthEast),
+                edge!(1, 0, EdgeDirection::West),
+                edge!(0, 1, EdgeDirection::NorthWest),
+                edge!(-1, 1, EdgeDirection::NorthEast),
+                edge!(0, 0, EdgeDirection::West),
+                edge!(0, 0, EdgeDirection::NorthWest),
+            ]
+        )
+    }
+
+    #[test]
     fn shared_vert_two() {
         assert!(axial!(0, 0).shared_vert_two(axial!(1, 1)).is_none());
 
@@ -993,6 +1079,13 @@ mod tests {
                 .shared_vert_three(axial!(2, 0), axial!(2, 1))
                 .unwrap(),
             vertex!(2, 0, VertexSpin::Down)
+        );
+
+        assert_eq!(
+            axial!(1, 1)
+                .shared_vert_three(axial!(1, 2), axial!(2, 1))
+                .unwrap(),
+            vertex!(1, 2, VertexSpin::Up)
         );
 
         assert_eq!(
