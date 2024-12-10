@@ -20,7 +20,7 @@ impl<T: Clone, V, E> HexGrid<T, V, E> {
     /// use gridava::hex::grid::render_svg;
     /// use gridava::hex::grid::HexGrid;
     ///
-    /// let my_grid = HexGrid::<i32, ()>::default();
+    /// let my_grid = HexGrid::<i32, (), ()>::default();
     /// let svg = render_svg(my_grid);
     /// ```
     pub fn render_svg(&self) -> SVG {
@@ -133,7 +133,7 @@ impl<T: Clone, V, E> HexGrid<T, V, E> {
     /// use gridava::hex::grid::{render_svg,save_svg};
     /// use gridava::hex::grid::HexGrid;
     ///
-    /// let my_grid = HexGrid::<i32, ()>::default();
+    /// let my_grid = HexGrid::<i32, (), ()>::default();
     /// let svg = render_svg(my_grid);
     /// save_svg("save.svg", svg);
     /// ```
