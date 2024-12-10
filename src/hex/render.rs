@@ -17,11 +17,10 @@ impl<T: Clone, V, E> HexGrid<T, V, E> {
     /// # Example
     /// ```
     /// /// ...
-    /// use gridava::hex::grid::render_svg;
     /// use gridava::hex::grid::HexGrid;
     ///
     /// let my_grid = HexGrid::<i32, (), ()>::default();
-    /// let svg = render_svg(my_grid);
+    /// let svg = my_grid.render_svg();
     /// ```
     pub fn render_svg(&self) -> SVG {
         let size_short = self.hex_size as f64 * 0.5;
@@ -130,12 +129,10 @@ impl<T: Clone, V, E> HexGrid<T, V, E> {
     /// # Example
     /// ```
     /// /// ...
-    /// use gridava::hex::grid::{render_svg,save_svg};
     /// use gridava::hex::grid::HexGrid;
     ///
     /// let my_grid = HexGrid::<i32, (), ()>::default();
-    /// let svg = render_svg(my_grid);
-    /// save_svg("save.svg", svg);
+    /// my_grid.save_svg("save.svg");
     /// ```
     pub fn save_svg(&self, path: &str) -> Result<(), std::io::Error> {
         svg::save(path, &self.render_svg())
@@ -143,6 +140,7 @@ impl<T: Clone, V, E> HexGrid<T, V, E> {
 }
 
 #[allow(unused_imports)]
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::core::tile::Tile;
