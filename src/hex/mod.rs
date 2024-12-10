@@ -5,5 +5,7 @@
 pub mod coordinate;
 pub mod edge;
 pub mod grid;
+#[cfg(feature = "svg")]
+pub mod render;
 pub mod shape;
 pub mod vertex;
