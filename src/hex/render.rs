@@ -146,6 +146,7 @@ mod tests {
     use crate::core::tile::Tile;
     use crate::hex::grid::{HexGrid, HexOrientation};
     use crate::hex::shape::HexShape;
+    use tempdir::TempDir;
 
     #[test]
     fn test_render_pointy_top() {
@@ -158,7 +159,14 @@ mod tests {
         grid.apply_shape(&shape);
 
         // TODO: figure out how to test the output for correctness as the result is nondeterministic
-        let ret = grid.save_svg("test.svg");
+        let tempdir = TempDir::new("render").unwrap();
+        let pathbuf = tempdir.path().join("test.svg");
+        let path = pathbuf.to_str();
+
+        let ret = match path {
+            Some(x) => grid.save_svg(x),
+            None => Err(std::io::Error::other("failed to create temp directory")),
+        };
         assert!(ret.is_ok());
     }
 
@@ -173,7 +181,14 @@ mod tests {
 
         grid.apply_shape(&shape);
 
-        let ret = grid.save_svg("test.svg");
+        let tempdir = TempDir::new("render").unwrap();
+        let pathbuf = tempdir.path().join("test.svg");
+        let path = pathbuf.to_str();
+
+        let ret = match path {
+            Some(x) => grid.save_svg(x),
+            None => Err(std::io::Error::other("failed to create temp directory")),
+        };
         assert!(ret.is_ok());
     }
 }
