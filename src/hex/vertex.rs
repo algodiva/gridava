@@ -217,6 +217,10 @@ impl Vertex {
     /// let dist = vertex!(0,0,VertexSpin::Up).distance(vertex!(1,0,VertexSpin::Up));
     /// ```
     pub fn distance(&self, b: Self) -> i32 {
+        // Check for same coordinate
+        if self.q == b.q && self.r == b.r {
+            return if self.spin == b.spin { 0 } else { 3 };
+        }
         let dist = axial!(self.q, self.r).distance(axial!(b.q, b.r));
         let dir = axial!(self.q, self.r).direction(axial!(b.q, b.r));
         let parity: usize = if self.spin == b.spin {
@@ -336,6 +340,16 @@ mod tests {
 
     #[test]
     fn distance() {
+        assert_eq!(
+            vertex!(0, 0, VertexSpin::Up).distance(vertex!(0, 0, VertexSpin::Up)),
+            0
+        );
+
+        assert_eq!(
+            vertex!(0, 0, VertexSpin::Up).distance(vertex!(0, 0, VertexSpin::Down)),
+            3
+        );
+
         assert_eq!(
             vertex!(0, 0, VertexSpin::Up).distance(vertex!(1, 1, VertexSpin::Up)),
             4
