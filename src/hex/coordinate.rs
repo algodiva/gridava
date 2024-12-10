@@ -76,7 +76,7 @@ impl From<i32> for HexDirection {
             3 => HexDirection::Back,
             4 => HexDirection::BackLeft,
             5 => HexDirection::FrontLeft,
-            _ => panic!(), // should never reach
+            _ => unreachable!(), // should never reach
         }
     }
 }
