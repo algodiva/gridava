@@ -360,6 +360,16 @@ mod tests {
             vertex!(0, 0, VertexSpin::Down).distance(vertex!(1, -1, VertexSpin::Up)),
             5
         );
+
+        assert_eq!(
+            vertex!(0, 0, VertexSpin::Up).distance(vertex!(2, -1, VertexSpin::Up)),
+            4
+        );
+
+        assert_eq!(
+            vertex!(-1, 0, VertexSpin::Up).distance(vertex!(1, 1, VertexSpin::Up)),
+            6
+        );
     }
 
     #[test]
