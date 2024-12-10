@@ -1,8 +1,19 @@
+codecov:
+  require_ci_to_pass: yes
+
 coverage:
   status:
+    project:
+      default: false  # disable the default status that measures entire project
+      tests:
+        paths:
+          - "tests/"
+        target: 100%
+      source:
+        paths:
+          - "src/"
+        target: 97%
+        threshold: 0.002
     patch:
-        informational: true
-        branches:
-          - main
-        if_ci_failed: error #set the status to success only if the CI is successful
-        only_pulls: false #Only post a status to pull requests
+      default:
+        target: 80%  # new contributions should have a coverage at least equal to target
