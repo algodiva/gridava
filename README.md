@@ -4,8 +4,6 @@
 [![codecov](https://codecov.io/github/algodiva/gridava/branch/main/graph/badge.svg?token=6N3RBEJ7AX)](https://codecov.io/github/algodiva/gridava)
 [![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg)](https://github.com/rust-secure-code/safety-dance/)
 
-# Gridava
-
 Gridava is a Rust library designed for creating and managing tiled coordinate systems. It provides robust support for various tile shapes, including hexagons, along with utilities for coordinate algorithms, transformations, and tile collections. Gridava is ideal for games, simulations, and applications requiring spatial logic.
 
 ## Features
