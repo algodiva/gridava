@@ -12,7 +12,6 @@ const SQRT3: f64 = 1.732050807568877293527446341505872367_f64;
 // Constant for now, longer-term should be configurable
 const PAD: f64 = 10.0;
 
-
 /// Create a SVG object containing a rendering of this grid.
 ///
 /// # Example
@@ -38,7 +37,6 @@ pub fn render_svg<T: Clone>(grid: HexGrid<i32, Tile<T>>) -> SVG {
         let (base_q, base_r) = grid.hex_to_world(*coords);
         let mut data = Data::new();
 
-        // Do these apply for FlatTop as well as PointyTop?
         if grid.orientation == HexOrientation::PointyTop {
             if base_q - size_long < min_q { min_q = base_q - size_long; }
             if base_q + size_long > max_q { max_q = base_q + size_long; }
