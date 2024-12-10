@@ -19,6 +19,15 @@ jobs:
     - name: Check
       run: cargo check
 
+  docs:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Docs
+        run: cargo clippy -- -D missing_docs
+
   werror:
 
     runs-on: ubuntu-latest
