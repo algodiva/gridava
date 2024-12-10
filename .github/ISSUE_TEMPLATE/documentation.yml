@@ -1,0 +1,27 @@
+name: Documentation Error
+description: Create a report for a documentation error.
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+      Thank you for reporting a documentation error!
+
+      Documentation problems might be grammatical issues, typos, or unclear wording, please provide details regarding the documentation including where it is present.
+
+  - type: textarea
+    id: location
+    attributes:
+      label: Location
+      description: Where is this documentation error? Try to be precise.
+      placeholder: ex. docs.rs/github/source, provide a link if possible.
+    validations:
+      required: true 
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Describe the nature of the error.
+    validations:
+      required: true 
