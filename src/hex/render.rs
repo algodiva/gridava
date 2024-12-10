@@ -4,7 +4,6 @@ use svg::node::element::path::Data;
 use svg::node::element::{Path, Text, SVG};
 use svg::Document;
 
-use crate::core::tile::Tile;
 use crate::hex::grid::{HexGrid, HexOrientation};
 
 #[allow(clippy::excessive_precision)]
@@ -22,7 +21,7 @@ const PAD: f64 = 10.0;
 /// let my_grid = HexGrid::<i32, ()>::default();
 /// let svg = render_svg(my_grid);
 /// ```
-pub fn render_svg<T: Clone>(grid: HexGrid<i32, Tile<T>>) -> SVG {
+pub fn render_svg<T: Clone>(grid: HexGrid<i32, (), ()>) -> SVG {
     let size_short = grid.hex_size as f64 * 0.5;
     let size_long = size_short * SQRT3;
 
@@ -149,7 +148,7 @@ mod tests {
     #[test]
     fn test_render_pointy_top() {
         let shape = HexShape::make_rhombus(2, 0, true, || 1);
-        let mut grid = HexGrid::<i32, Tile<i32>> {
+        let mut grid = HexGrid::<i32, (), ()> {
             orientation: HexOrientation::PointyTop,
             ..HexGrid::default()
         };
@@ -166,7 +165,7 @@ mod tests {
     #[test]
     fn test_render_flat_top() {
         let shape = HexShape::make_rhombus(3, 0, true, || 1);
-        let mut grid = HexGrid::<i32, Tile<i32>> {
+        let mut grid = HexGrid::<i32, (), ()> {
             orientation: HexOrientation::FlatTop,
             hex_size: 100.0,
             ..HexGrid::default()
