@@ -25,7 +25,7 @@ impl<T: Clone, V, E> HexGrid<T, V, E> {
     pub fn render_svg(&self) -> SVG {
         let size_short = self.hex_size as f64 * 0.5;
         let size_long = size_short * SQRT3;
-    
+
         let mut doc = Document::new();
         let mut max_q = size_long;
         let mut min_q = -max_q;
