@@ -1,11 +1,11 @@
 // SVG file generation for hex grids
 
-use svg::Document;
-use svg::node::element::{Path,SVG,Text};
 use svg::node::element::path::Data;
+use svg::node::element::{Path, Text, SVG};
+use svg::Document;
 
-use crate::hex::grid::{HexGrid,HexOrientation};
 use crate::core::tile::Tile;
+use crate::hex::grid::{HexGrid, HexOrientation};
 
 #[allow(clippy::excessive_precision)]
 const SQRT3: f64 = 1.732050807568877293527446341505872367_f64;
@@ -38,11 +38,19 @@ pub fn render_svg<T: Clone>(grid: HexGrid<i32, Tile<T>>) -> SVG {
         let mut data = Data::new();
 
         if grid.orientation == HexOrientation::PointyTop {
-            if base_q - size_long < min_q { min_q = base_q - size_long; }
-            if base_q + size_long > max_q { max_q = base_q + size_long; }
+            if base_q - size_long < min_q {
+                min_q = base_q - size_long;
+            }
+            if base_q + size_long > max_q {
+                max_q = base_q + size_long;
+            }
 
-            if base_r - size_short * 2.0 < min_r { min_r = base_r - size_short * 2.0; }
-            if base_r + size_short * 2.0 > max_r { max_r = base_r + size_short * 2.0; }
+            if base_r - size_short * 2.0 < min_r {
+                min_r = base_r - size_short * 2.0;
+            }
+            if base_r + size_short * 2.0 > max_r {
+                max_r = base_r + size_short * 2.0;
+            }
 
             data = data
                 .move_to((base_q, base_r + size_short * 2.0))
@@ -53,11 +61,19 @@ pub fn render_svg<T: Clone>(grid: HexGrid<i32, Tile<T>>) -> SVG {
                 .line_to((base_q - size_long, base_r + size_short))
                 .line_to((base_q, base_r + size_short * 2.0));
         } else {
-            if base_q - size_short * 2.0 < min_q { min_q = base_q - size_short * 2.0; }
-            if base_q + size_short * 2.0 > max_q { max_q = base_q + size_short * 2.0; }
+            if base_q - size_short * 2.0 < min_q {
+                min_q = base_q - size_short * 2.0;
+            }
+            if base_q + size_short * 2.0 > max_q {
+                max_q = base_q + size_short * 2.0;
+            }
 
-            if base_r - size_long < min_r { min_r = base_r - size_long; }
-            if base_r + size_long > max_r { max_r = base_r + size_long; }
+            if base_r - size_long < min_r {
+                min_r = base_r - size_long;
+            }
+            if base_r + size_long > max_r {
+                max_r = base_r + size_long;
+            }
 
             data = data
                 .move_to((base_q + size_short * 2.0, base_r))
@@ -76,7 +92,11 @@ pub fn render_svg<T: Clone>(grid: HexGrid<i32, Tile<T>>) -> SVG {
             .set("d", data);
 
         let txt = format!("{},{}", coords.q, coords.r);
-        let text = Text::new(txt).set("x", base_q).set("y", base_r + 4.0).set("text-anchor", "middle").set("font-size", 12);
+        let text = Text::new(txt)
+            .set("x", base_q)
+            .set("y", base_r + 4.0)
+            .set("text-anchor", "middle")
+            .set("font-size", 12);
 
         doc = doc.clone().add(path).add(text);
     }
@@ -99,8 +119,7 @@ pub fn render_svg<T: Clone>(grid: HexGrid<i32, Tile<T>>) -> SVG {
         .set("stroke_width", 1)
         .set("d", border);
 
-    doc 
-        .add(path)
+    doc.add(path)
         .set("viewBox", (min_q, min_r, max_q - min_q, max_r - min_r))
         .set("style", "background-color: #DDDDDD; stroke-width: 1px")
 }
@@ -124,13 +143,16 @@ pub fn save_svg(path: &str, document: SVG) -> Result<(), std::io::Error> {
 mod tests {
     use super::*;
     use crate::core::tile::Tile;
+    use crate::hex::grid::{HexGrid, HexOrientation};
     use crate::hex::shape::HexShape;
-    use crate::hex::grid::{HexGrid,HexOrientation};
 
     #[test]
     fn test_render_pointy_top() {
         let shape = HexShape::make_rhombus(2, 0, true, || 1);
-        let mut grid = HexGrid::<i32, Tile<i32>>{ orientation: HexOrientation::PointyTop, ..HexGrid::default() };
+        let mut grid = HexGrid::<i32, Tile<i32>> {
+            orientation: HexOrientation::PointyTop,
+            ..HexGrid::default()
+        };
 
         grid.apply_shape(&shape);
 
@@ -144,7 +166,11 @@ mod tests {
     #[test]
     fn test_render_flat_top() {
         let shape = HexShape::make_rhombus(3, 0, true, || 1);
-        let mut grid = HexGrid::<i32, Tile<i32>>{ orientation: HexOrientation::FlatTop, hex_size: 100.0, ..HexGrid::default() };
+        let mut grid = HexGrid::<i32, Tile<i32>> {
+            orientation: HexOrientation::FlatTop,
+            hex_size: 100.0,
+            ..HexGrid::default()
+        };
 
         grid.apply_shape(&shape);
 

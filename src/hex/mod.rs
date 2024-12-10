@@ -4,6 +4,6 @@
 //!
 pub mod coordinate;
 pub mod grid;
+pub mod render;
 pub mod shape;
 pub mod vertex;
-pub mod render;
