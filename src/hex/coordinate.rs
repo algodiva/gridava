@@ -432,7 +432,7 @@ impl Axial {
     /// Direction to b from self.
     ///
     /// Outputs degrees from hex forward vector, +q, to the target b.
-    /// The
+    /// The range of output is `0.0..360.0`
     pub fn direction(&self, b: Self) -> f64 {
         // direction to b from the pov of self
         let vec = b - *self;
