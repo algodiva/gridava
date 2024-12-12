@@ -1,22 +1,19 @@
 //! The entity that owns tiles.
 
-use std::collections::HashMap;
-
-use super::vertex::Vertex;
-use super::{coordinate::Axial, edge::Edge};
-
 use crate::axial;
 
-use super::shape::HexShape;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+use super::coordinate::Axial;
+
 /// Enum denoting orientation of hexagons in a grid.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum HexOrientation {
     /// The top of a hexagon is flat
     FlatTop,
+    #[default]
     /// The top of a hexagon is pointy
     PointyTop,
 }
@@ -26,39 +23,17 @@ pub enum HexOrientation {
 #[allow(clippy::excessive_precision)]
 pub const SQRT_3: f64 = 1.732050807568877293527446341505872367_f64;
 
-/// A grid of tiles.
-///
-/// This entity owns the tiles in its coordinate system.
-///
-/// Contains useful functions to convert to and from world space and grid coordinates.
+/// A helper converter struct that will help facilitate conversion to and from the grid and world space.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, PartialEq)]
-pub struct HexGrid<T: Clone, V, E> {
-    /// Orientation of a hexagonal grid
+#[derive(Debug, Clone, Default)]
+pub struct WSConverter {
+    /// Size of the hexagon
+    pub size: f32,
+    /// Which orientation is the hexagon in.
     pub orientation: HexOrientation,
-    /// Size of an individual hexagon
-    pub hex_size: f32,
-    /// Collection of tiles for the gird
-    pub tiles: HashMap<Axial, T>,
-    /// Collection of vertices for the grid
-    pub vertices: HashMap<Vertex, V>,
-    /// Collection of edges for the grid
-    pub edges: HashMap<Edge, E>,
 }
 
-impl<T: Clone, V, E> Default for HexGrid<T, V, E> {
-    fn default() -> Self {
-        Self {
-            orientation: HexOrientation::PointyTop,
-            hex_size: 32.0,
-            tiles: Default::default(),
-            vertices: Default::default(),
-            edges: Default::default(),
-        }
-    }
-}
-
-impl<T: Clone, V, E> HexGrid<T, V, E> {
+impl WSConverter {
     /// Convert from worldspace to hex coordinates.
     ///
     /// Takes in a float 64 tuple of the form (x, y) and outputs the coordinates of the nearest tile.
@@ -67,10 +42,10 @@ impl<T: Clone, V, E> HexGrid<T, V, E> {
     /// ```
     /// let my_object_pos = (100.0, 432.0);
     /// /// ...
-    /// use gridava::hex::grid::HexGrid;
+    /// use gridava::hex::grid::{WSConverter, HexOrientation};
     ///
-    /// let my_grid = HexGrid::<i32, (), ()>::default();
-    /// let nearest_tile = my_grid.world_to_hex(my_object_pos);
+    /// let converter = WSConverter { size: 32.0, orientation: HexOrientation::PointyTop };
+    /// let nearest_tile = converter.world_to_hex(my_object_pos);
     /// ```
     ///
     /// The parent world space can be anything not just a 'game world.' For instance, the screen width and height could be your worldspace.
@@ -80,8 +55,8 @@ impl<T: Clone, V, E> HexGrid<T, V, E> {
 
         match self.orientation {
             HexOrientation::PointyTop => {
-                let x = worldspace.0 / (SQRT_3 * self.hex_size as f64);
-                let y = -worldspace.1 / (SQRT_3 * self.hex_size as f64);
+                let x = worldspace.0 / (SQRT_3 * self.size as f64);
+                let y = -worldspace.1 / (SQRT_3 * self.size as f64);
                 let t = SQRT_3 * y + 1.0;
                 let temp1 = f64::floor(t + x);
                 let temp2 = t - x;
@@ -91,8 +66,8 @@ impl<T: Clone, V, E> HexGrid<T, V, E> {
                 axial!(f64::floor(qf) as i32, -f64::floor(rf) as i32)
             }
             HexOrientation::FlatTop => {
-                let y = worldspace.0 / (SQRT_3 * self.hex_size as f64);
-                let x = -worldspace.1 / (SQRT_3 * self.hex_size as f64);
+                let y = worldspace.0 / (SQRT_3 * self.size as f64);
+                let x = -worldspace.1 / (SQRT_3 * self.size as f64);
                 let t = SQRT_3 * y + 1.0;
                 let temp1 = f64::floor(t + x);
                 let temp2 = t - x;
@@ -111,11 +86,11 @@ impl<T: Clone, V, E> HexGrid<T, V, E> {
     /// # Example
     /// ```
     /// /// ...
-    /// use gridava::hex::grid::HexGrid;
     /// use gridava::hex::coordinate::{Axial, axial};
+    /// use gridava::hex::grid::{WSConverter, HexOrientation};
     ///
-    /// let my_grid = HexGrid::<i32, (), ()>::default();
-    /// let world_pos = my_grid.hex_to_world(axial!(12, 33));
+    /// let converter = WSConverter { size: 32.0, orientation: HexOrientation::PointyTop };
+    /// let nearest_tile = converter.hex_to_world(axial!(12, 33));
     /// ```
     ///
     /// The parent world space can be anything not just a 'game world.' For instance, the screen width and height could be your worldspace.
@@ -123,84 +98,18 @@ impl<T: Clone, V, E> HexGrid<T, V, E> {
     pub fn hex_to_world(&self, coord: Axial) -> (f64, f64) {
         match self.orientation {
             HexOrientation::PointyTop => {
-                let x = self.hex_size as f64
-                    * (SQRT_3 * coord.q as f64 + SQRT_3 / 2.0 * coord.r as f64);
-                let y = self.hex_size as f64 * (3.0 / 2.0 * coord.r as f64);
+                let x =
+                    self.size as f64 * (SQRT_3 * coord.q as f64 + SQRT_3 / 2.0 * coord.r as f64);
+                let y = self.size as f64 * (3.0 / 2.0 * coord.r as f64);
                 (x, y)
             }
             HexOrientation::FlatTop => {
-                let x = self.hex_size as f64 * (3.0 / 2.0 * coord.q as f64);
-                let y = self.hex_size as f64
-                    * (SQRT_3 / 2.0 * coord.q as f64 + SQRT_3 * coord.r as f64);
+                let x = self.size as f64 * (3.0 / 2.0 * coord.q as f64);
+                let y =
+                    self.size as f64 * (SQRT_3 / 2.0 * coord.q as f64 + SQRT_3 * coord.r as f64);
                 (x, y)
             }
         }
-    }
-
-    /// Apply the shape onto the grid's collection.
-    ///
-    /// This will take every element inside a shape that is wrapped in Some()
-    /// and apply it into the grid's collection.
-    ///
-    /// # Example
-    /// ```
-    /// use gridava::hex::grid::HexGrid;
-    /// use gridava::hex::shape::HexShape;
-    ///
-    /// #[derive(Default, Clone)]
-    /// pub struct MyData {
-    ///     pub my_int: i32,
-    /// }
-    ///
-    /// let mut my_grid = HexGrid::<MyData, (), ()>::default();
-    /// let my_shape = HexShape::make_triangle(1, 0, true, MyData::default);
-    ///
-    /// my_grid.apply_shape(&my_shape);
-    /// ```
-    pub fn apply_shape(&mut self, shape: &HexShape<T>) -> &Self {
-        shape.get_hexes().indexed_iter().for_each(|ele| {
-            if let Some(value) = ele.1.as_ref() {
-                // Apply transform
-                let coord =
-                    axial!(ele.0 .0 as i32, ele.0 .1 as i32).apply_transform(shape.transform);
-
-                self.tiles.insert(coord, value.clone());
-            }
-        });
-        self
-    }
-
-    /// Extract data from the grid into the shape.
-    ///
-    /// Clones data from the grid's collection into the shape's internal working collection.
-    ///
-    /// # Example
-    /// ```
-    /// use gridava::hex::grid::HexGrid;
-    /// use gridava::hex::shape::HexShape;
-    ///
-    /// #[derive(Default, Clone)]
-    /// pub struct MyData {
-    ///     pub my_int: i32,
-    /// }
-    ///
-    /// let my_grid = HexGrid::<MyData, (), ()>::default();
-    ///
-    /// // ... generate data in grid
-    ///
-    /// let mut my_shape = HexShape::make_triangle(1, 0, true, MyData::default);
-    /// my_grid.extract_shape(&mut my_shape);
-    /// ```
-    pub fn extract_shape(&self, shape: &mut HexShape<T>) {
-        let transform = shape.transform;
-
-        shape.get_hexes_mut().indexed_iter_mut().for_each(|ele| {
-            if ele.1.is_some() {
-                // Apply transform
-                let coord = axial!(ele.0 .0 as i32, ele.0 .1 as i32).apply_transform(transform);
-                *ele.1 = self.tiles.get(&coord).cloned();
-            }
-        });
     }
 }
 
@@ -211,20 +120,11 @@ mod tests {
     use assert_float_eq::*;
 
     #[test]
-    fn default() {
-        let def = HexGrid::<(), (), ()>::default();
-
-        assert_eq!(def.orientation, HexOrientation::PointyTop);
-        assert_eq!(def.hex_size, 32.0);
-        assert!(def.tiles.is_empty());
-    }
-
-    #[test]
     fn world_to_hex() {
         // Size 10 PT
-        let grid10p = HexGrid::<(), (), ()> {
-            hex_size: 10.0,
-            ..HexGrid::default()
+        let grid10p = WSConverter {
+            size: 10.0,
+            orientation: HexOrientation::PointyTop,
         };
 
         assert_eq!(grid10p.world_to_hex((0.0, 0.0)), axial!(0, 0));
@@ -240,8 +140,8 @@ mod tests {
         );
 
         // size 32 PT
-        let grid32p = HexGrid {
-            hex_size: 32.0,
+        let grid32p = WSConverter {
+            size: 32.0,
             ..grid10p
         };
 
@@ -258,10 +158,9 @@ mod tests {
         );
 
         // size 10 FT
-        let grid10f = HexGrid {
-            hex_size: 10.0,
+        let grid10f = WSConverter {
+            size: 10.0,
             orientation: HexOrientation::FlatTop,
-            ..grid32p
         };
 
         assert_eq!(grid10f.world_to_hex((0.0, 0.0)), axial!(0, 0));
@@ -277,8 +176,8 @@ mod tests {
         );
 
         // size 32 FT
-        let grid32f = HexGrid {
-            hex_size: 32.0,
+        let grid32f = WSConverter {
+            size: 32.0,
             ..grid10f
         };
 
@@ -300,9 +199,9 @@ mod tests {
     #[test]
     fn hex_to_world() {
         // Size 10 PT
-        let grid = HexGrid::<(), (), ()> {
-            hex_size: 10.0,
-            ..HexGrid::default()
+        let grid = WSConverter {
+            size: 10.0,
+            orientation: HexOrientation::PointyTop,
         };
 
         assert_f64_tuples_near!(grid.hex_to_world(axial!(0, -15)), (SQRT_3 * -75.0, -225.0));
@@ -326,10 +225,7 @@ mod tests {
         assert_f64_tuples_near!(grid.hex_to_world(axial!(-15, 0)), (SQRT_3 * -150.0, 0.0));
 
         // Size 40 PT
-        let grid = HexGrid {
-            hex_size: 40.0,
-            ..grid
-        };
+        let grid = WSConverter { size: 40.0, ..grid };
 
         assert_f64_tuples_near!(grid.hex_to_world(axial!(0, 0)), (0.0, 0.0));
         assert_f64_tuples_near!(grid.hex_to_world(axial!(0, -15)), (SQRT_3 * -300.0, -900.0));
@@ -337,7 +233,7 @@ mod tests {
         assert_f64_tuples_near!(grid.hex_to_world(axial!(-12, 8)), (SQRT_3 * -320.0, 480.0));
 
         // Size 40 FT
-        let grid = HexGrid {
+        let grid = WSConverter {
             orientation: HexOrientation::FlatTop,
             ..grid
         };
@@ -348,10 +244,7 @@ mod tests {
         assert_f64_tuples_near!(grid.hex_to_world(axial!(-12, 8)), (-720.0, SQRT_3 * 80.0));
 
         // Size 10 FT
-        let grid = HexGrid {
-            hex_size: 10.0,
-            ..grid
-        };
+        let grid = WSConverter { size: 10.0, ..grid };
 
         assert_f64_tuples_near!(grid.hex_to_world(axial!(0, -15)), (0.0, SQRT_3 * -150.0));
         assert_f64_tuples_near!(grid.hex_to_world(axial!(0, 0)), (0.0, 0.0));
@@ -385,58 +278,24 @@ mod tests {
 
     #[test]
     fn two_way_identity() {
-        let pt10p = HexGrid::<(), (), ()> {
-            hex_size: 10.0,
-            ..HexGrid::default()
+        let pt10p = WSConverter {
+            size: 10.0,
+            orientation: HexOrientation::PointyTop,
         };
 
-        two_way_conversion!(pt10p.clone(), axial!(0, 0));
-        two_way_conversion!(pt10p.clone(), axial!(12, -8));
-        two_way_conversion!(pt10p.clone(), axial!(15, 0));
-        two_way_conversion!(pt10p.clone(), axial!(0, -15));
+        two_way_conversion!(&pt10p, axial!(0, 0));
+        two_way_conversion!(&pt10p, axial!(12, -8));
+        two_way_conversion!(&pt10p, axial!(15, 0));
+        two_way_conversion!(&pt10p, axial!(0, -15));
 
-        let ft10p = HexGrid {
+        let ft10p = WSConverter {
             orientation: HexOrientation::FlatTop,
             ..pt10p
         };
 
-        two_way_conversion!(ft10p.clone(), axial!(0, 0));
-        two_way_conversion!(ft10p.clone(), axial!(12, -8));
-        two_way_conversion!(ft10p.clone(), axial!(15, 0));
-        two_way_conversion!(ft10p.clone(), axial!(0, -15));
-    }
-
-    #[test]
-    fn apply_shape() {
-        let shape = HexShape::make_rhombus(1, 0, true, || 1);
-        let mut grid = HexGrid::<i32, (), ()>::default();
-
-        grid.apply_shape(&shape);
-
-        shape.get_hexes().indexed_iter().for_each(|ele| {
-            assert_eq!(
-                *grid
-                    .tiles
-                    .get(&axial!(ele.0 .0 as i32, ele.0 .1 as i32))
-                    .unwrap(),
-                ele.1.unwrap()
-            )
-        });
-    }
-
-    #[test]
-    fn extract_shape() {
-        let shape = HexShape::make_rhombus(1, 0, true, || 2);
-        let mut grid = HexGrid::<i32, (), ()>::default();
-
-        grid.apply_shape(&shape);
-
-        let mut shape = HexShape::make_rhombus(1, 0, true, || 0);
-        grid.extract_shape(&mut shape);
-
-        shape
-            .get_hexes()
-            .iter()
-            .for_each(|ele| assert_eq!(ele.unwrap(), 2));
+        two_way_conversion!(&ft10p, axial!(0, 0));
+        two_way_conversion!(&ft10p, axial!(12, -8));
+        two_way_conversion!(&ft10p, axial!(15, 0));
+        two_way_conversion!(&ft10p, axial!(0, -15));
     }
 }
