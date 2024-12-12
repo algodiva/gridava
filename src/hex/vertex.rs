@@ -216,6 +216,7 @@ impl Vertex {
     ///
     /// let dist = vertex!(0,0,VertexSpin::Up).distance(vertex!(1,0,VertexSpin::Up));
     /// ```
+    #[cfg(feature = "std")]
     pub fn distance(&self, b: Self) -> i32 {
         // Check for same coordinate
         if self.q == b.q && self.r == b.r {
@@ -252,6 +253,59 @@ impl Vertex {
 
         // Coerced bool into usize.
         let on_axis = (dir.round() as i32 % 60 != 0) as usize;
+
+        // Fetch the appropriate adjustment
+        let base_adjustment = PARITY_ADJUSTMENTS[on_axis][parity][sector];
+
+        // Calculate final distance
+        2 * dist + base_adjustment
+    }
+
+    /// Compute the L1 distance between two vertices.
+    ///
+    /// ```
+    /// use gridava::hex::vertex::{Vertex, VertexSpin, vertex};
+    ///
+    /// let dist = vertex!(0,0,VertexSpin::Up).distance(vertex!(1,0,VertexSpin::Up));
+    /// ```
+    #[cfg(not(feature = "std"))]
+    pub fn distance(&self, b: Self) -> i32 {
+        use crate::lib::round;
+        // Check for same coordinate
+        if self.q == b.q && self.r == b.r {
+            return if self.spin == b.spin { 0 } else { 3 };
+        }
+        let dist = axial!(self.q, self.r).distance(axial!(b.q, b.r));
+        let dir = axial!(self.q, self.r).direction(axial!(b.q, b.r));
+        let parity: usize = if self.spin == b.spin {
+            0 // Same
+        } else if self.spin == VertexSpin::Up && b.spin == VertexSpin::Down {
+            1 // NS
+        } else {
+            2 // SN
+        };
+
+        // Define adjustment constants for each parity type
+        const PARITY_ADJUSTMENTS: [[[i32; 6]; 3]; 2] = [
+            // On Axis
+            [
+                [0, 0, 0, 0, 0, 0],   // Same
+                [1, 3, 3, 1, -1, -1], // NS
+                [1, -1, -1, 1, 3, 3], // SN
+            ],
+            // Off Axis
+            [
+                [0, 0, 0, 0, 0, 0],    // Same
+                [1, 3, 1, -1, -1, -1], // NS
+                [-1, -1, -1, 1, 3, 1], // SN
+            ],
+        ];
+
+        // Determine sector index (0 to 5)
+        let sector = ((dir as i32 / 60) % 6) as usize;
+
+        // Coerced bool into usize.
+        let on_axis = (round(dir) as i32 % 60 != 0) as usize;
 
         // Fetch the appropriate adjustment
         let base_adjustment = PARITY_ADJUSTMENTS[on_axis][parity][sector];

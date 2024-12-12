@@ -11,14 +11,18 @@ categories = ["data-structures", "game-development"]
 exclude = ["/.gitignore", "/TODO", "/.gitattributes", "/.github"]
 
 [dependencies]
-ndarray = "0.16.1"
-serde = {version = "1.0", features = ["derive"], optional = true}
+ndarray = {version = "0.16.1", default-features = false}
+serde = {version = "1.0", default-features = false, features = ["derive"], optional = true}
+libm = {version = "0.2.11", default-features = false}
 
 [dev-dependencies]
 assert_float_eq = "1"
 
 [features]
+default = ["std"]
 serde = ["dep:serde", "ndarray/serde"]
+std = ["serde?/std", "ndarray/std"]
+alloc = ["serde?/alloc"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)'] }

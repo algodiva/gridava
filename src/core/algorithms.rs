@@ -1,8 +1,6 @@
 //! Miscelanious algorithms for grids.
 
-use std::fmt::Display;
-
-use ndarray::Array2;
+use crate::lib::*;
 
 /// Error for flood_fill
 #[derive(Debug)]
@@ -12,7 +10,7 @@ pub enum FFError {
 }
 
 impl Display for FFError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             FFError::InvalidSeed => {
                 write!(f, "provided seed is out of bounds of the provided array")
@@ -48,6 +46,7 @@ impl Display for FFError {
 ///     [3, 1, 0]]);
 /// ```
 /// Uses the Span-filling algorithm
+#[cfg(any(feature = "std", feature = "alloc"))]
 pub fn flood_fill<T, F>(
     in_arr: &mut Array2<T>,
     seed: (i32, i32),
@@ -121,9 +120,9 @@ where
     Ok(())
 }
 
-#[cfg(test)]
+#[cfg(all(test, any(feature = "std", feature = "alloc")))]
 mod tests {
-    use ndarray::array;
+    use super::*;
 
     #[test]
     fn flood_fill() {

@@ -1,5 +1,7 @@
 //! The entity that owns tiles.
 
+use crate::lib::*;
+
 use std::collections::HashMap;
 
 use super::vertex::Vertex;
@@ -20,11 +22,6 @@ pub enum HexOrientation {
     /// The top of a hexagon is pointy
     PointyTop,
 }
-
-// Because Rust has determined to hide a constant behind an 'unstable' tag we restate it here.
-/// Constant calculation of square root of 3.
-#[allow(clippy::excessive_precision)]
-pub const SQRT_3: f64 = 1.732050807568877293527446341505872367_f64;
 
 /// A grid of tiles.
 ///

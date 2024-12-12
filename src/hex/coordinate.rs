@@ -1,13 +1,9 @@
 //! Coordinate system for hex based grids.
 
-use std::{
-    cmp::PartialEq,
-    ops::{Add, AddAssign, Div, Mul, Neg, Rem, Sub, SubAssign},
-};
+use crate::lib::*;
 
 use super::{
     edge::{Edge, EdgeDirection},
-    grid::SQRT_3,
     vertex::{vertex, Vertex, VertexSpin},
 };
 use crate::{core::transform::Transform, edge};
@@ -433,6 +429,7 @@ impl Axial {
     ///
     /// Outputs degrees from hex forward vector, +q, to the target b.
     /// The range of output is `0.0..360.0`
+    #[cfg(feature = "std")]
     pub fn direction(&self, b: Self) -> f64 {
         // direction to b from the pov of self
         let vec = b - *self;
@@ -440,6 +437,21 @@ impl Axial {
         let x = SQRT_3 * vec.q as f64 + SQRT_3 / 2.0 * vec.r as f64;
         let y = 3.0 / 2.0 * vec.r as f64;
         -y.atan2(-x).to_degrees() + 180.0
+    }
+
+    /// Direction to b from self.
+    ///
+    /// Outputs degrees from hex forward vector, +q, to the target b.
+    /// The range of output is `0.0..360.0`
+    #[cfg(not(feature = "std"))]
+    pub fn direction(&self, b: Self) -> f64 {
+        use crate::lib::atan2;
+        // direction to b from the pov of self
+        let vec = b - *self;
+
+        let x = SQRT_3 * vec.q as f64 + SQRT_3 / 2.0 * vec.r as f64;
+        let y = 3.0 / 2.0 * vec.r as f64;
+        atan2(-y, -x).to_degrees() + 180.0
     }
 
     // utilize f64 to preserve lossless conversion for i32
@@ -458,6 +470,7 @@ impl Axial {
     ///
     /// let coord = Axial::round((1.6, 3.2));
     /// ```
+    #[cfg(feature = "std")]
     pub fn round(fcoord: (f64, f64)) -> Self {
         let qgrid = fcoord.0.round();
         let rgrid = fcoord.1.round();
@@ -470,6 +483,36 @@ impl Axial {
             axial!(q as i32, rgrid as i32)
         } else {
             let r = rgrid + f64::round(r_rem + 0.5 * q_rem);
+            axial!(qgrid as i32, r as i32)
+        }
+    }
+
+    /// Rounds a floating hex coordinate to an integer coordinate.
+    ///
+    /// This algorithm is based on the round function by Jacob Rus
+    /// <https://observablehq.com/@jrus/hexround>
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::{Axial, axial};
+    ///
+    /// let coord = Axial::round((1.6, 3.2));
+    /// ```
+    #[cfg(not(feature = "std"))]
+    pub fn round(fcoord: (f64, f64)) -> Self {
+        use crate::lib::{fabs, round};
+
+        let qgrid = round(fcoord.0);
+        let rgrid = round(fcoord.1);
+
+        let q_rem = fcoord.0 - qgrid;
+        let r_rem = fcoord.1 - rgrid;
+
+        if fabs(q_rem) >= fabs(r_rem) {
+            let q = qgrid + round(q_rem + 0.5 * r_rem);
+            axial!(q as i32, rgrid as i32)
+        } else {
+            let r = rgrid + round(r_rem + 0.5 * q_rem);
             axial!(qgrid as i32, r as i32)
         }
     }
@@ -500,6 +543,7 @@ impl Axial {
     /// // coords will contain (0, 0) (1, 0) and (2, 0)
     /// let coords = axial!(0, 0).line(axial!(2, 0));
     /// ```
+    #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn line(&self, b: Self) -> Vec<Self> {
         let dist = self.distance(b);
         let mut ret = vec![];
@@ -522,6 +566,7 @@ impl Axial {
     /// // coords will contain all the neighbors of (0, 0)
     /// let coords = axial!(0, 0).range(1);
     /// ```
+    #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn range(&self, range: i32) -> Vec<Self> {
         let mut ret = vec![];
 
@@ -861,6 +906,7 @@ mod tests {
         assert_eq!(axial!(-1, -1).lerp(axial!(9, 19), 1.25), axial!(11, 24));
     }
 
+    #[cfg(any(feature = "std", feature = "alloc"))]
     #[test]
     fn line() {
         assert_eq!(
@@ -903,6 +949,7 @@ mod tests {
         );
     }
 
+    #[cfg(any(feature = "std", feature = "alloc"))]
     #[test]
     fn range() {
         assert_eq!(axial!(0, 0).range(0), vec![axial!(0, 0)]);
