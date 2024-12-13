@@ -122,7 +122,7 @@ where
 
 #[cfg(all(test, any(feature = "std", feature = "alloc")))]
 mod tests {
-    use std::format;
+    use alloc::format;
 
     use super::*;
 
