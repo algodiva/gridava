@@ -48,13 +48,10 @@ Please review our [contributing guidelines](CONTRIBUTING.md) for more details.
 
 ## Roadmap
 
-- Develop more advanced transformation and manipulation utilities.
 - Integrate visual debugging and documentation tools.
 - Square feature parity
 - Triangle feature parity
 - Documentation diagrams
-- Github documentation
-- Pathfinding
 
 ## License
 

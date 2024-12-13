@@ -4,7 +4,10 @@ use crate::lib::*;
 
 use crate::{
     axial,
-    core::transform::{Transform, Vector2D},
+    core::{
+        collection::Collection,
+        transform::{Transform, Vector2D},
+    },
     transform, vector2d,
 };
 
@@ -60,14 +63,14 @@ impl<T: Clone> HexShape<T> {
     ///
     /// /// shape_verts stores a triangle of size 1
     /// let shape_verts = vec![axial!(0, 0), axial!(0, 1), axial!(1, 0)];
-    /// let my_shape = HexShape::make_shape(&shape_verts, true, || Tile::new(Some(1)));
+    /// let my_shape = HexShape::make_shape(&shape_verts, true, |_| Tile::new(Some(1)));
     /// ```
     ///
     /// The algorithm *WILL* calculate its inequalities on EVERY point in the array. So, in example, if you have a point
     /// inside a shape, that point will still be calculated but will not change anything about the resultant inequality.
     pub fn make_shape<F>(points: &[Axial], square_bb: bool, mut constructor: F) -> Self
     where
-        F: FnMut() -> T,
+        F: FnMut(Axial) -> T,
     {
         // We cannot construct a shape with no points, return an empty shape.
         if points.is_empty() {
@@ -122,7 +125,7 @@ impl<T: Clone> HexShape<T> {
 
         // Construct tiles that the shape contains.
         for coord in hexes {
-            arr[[coord.q as usize, coord.r as usize]] = Some(constructor());
+            arr[[coord.q as usize, coord.r as usize]] = Some(constructor(coord));
         }
 
         HexShape::new(Some(arr), Some(transform))
@@ -139,11 +142,11 @@ impl<T: Clone> HexShape<T> {
     /// use gridava::hex::shape::HexShape;
     ///
     /// /// Creates a line of size 1, 0-1 inclusive, and sets the tiles to Some(1)
-    /// let my_shape = HexShape::make_line(1, 0, true, || Tile::new(Some(1)));
+    /// let my_shape = HexShape::make_line(1, 0, true, |_| Tile::new(Some(1)));
     /// ```
     pub fn make_line<F>(size: u32, rot_dir: i32, square_bb: bool, constructor: F) -> Self
     where
-        F: FnMut() -> T,
+        F: FnMut(Axial) -> T,
     {
         // Working in local space
         let vertex_a = axial!(0, 0);
@@ -162,11 +165,11 @@ impl<T: Clone> HexShape<T> {
     /// use gridava::hex::shape::HexShape;
     ///
     /// /// Creates a triangle of size 1, 0-1 inclusive, and sets the tiles to Some(1)
-    /// let my_shape = HexShape::make_triangle(1, 0, true, || Tile::new(Some(1)));
+    /// let my_shape = HexShape::make_triangle(1, 0, true, |_| Tile::new(Some(1)));
     /// ```
     pub fn make_triangle<F>(size: u32, rot_dir: i32, square_bb: bool, constructor: F) -> Self
     where
-        F: FnMut() -> T,
+        F: FnMut(Axial) -> T,
     {
         // Working in local space
         let vertex_a = axial!(0, 0);
@@ -187,11 +190,11 @@ impl<T: Clone> HexShape<T> {
     /// use gridava::hex::shape::HexShape;
     ///
     /// /// Creates a rhombus of size 1, 0-1 inclusive, and sets the tiles to Some(1)
-    /// let my_shape = HexShape::make_rhombus(1, 0, true, || Tile::new(Some(1)));
+    /// let my_shape = HexShape::make_rhombus(1, 0, true, |_| Tile::new(Some(1)));
     /// ```
     pub fn make_rhombus<F>(size: u32, rot_dir: i32, square_bb: bool, constructor: F) -> Self
     where
-        F: FnMut() -> T,
+        F: FnMut(Axial) -> T,
     {
         // Working in local space
         let vertex_a = axial!(0, 0);
@@ -201,6 +204,38 @@ impl<T: Clone> HexShape<T> {
 
         Self::make_shape(
             &[vertex_a, vertex_b, vertex_c, vertex_d],
+            square_bb,
+            constructor,
+        )
+    }
+
+    /// Create a hexagon shape.
+    ///
+    /// Given a size and direction this will create a regular hexagon.
+    ///
+    /// see [`Self::make_shape`] for more.
+    ///
+    /// ```
+    /// use gridava::core::tile::Tile;
+    /// use gridava::hex::shape::HexShape;
+    ///
+    /// /// Creates a hexagon of size 1, 0-1 inclusive, and sets the tiles to Some(1)
+    /// let my_shape = HexShape::make_hexagon(1, 0, true, |_| Tile::new(Some(1)));
+    /// ```
+    pub fn make_hexagon<F>(size: u32, rot_dir: i32, square_bb: bool, constructor: F) -> Self
+    where
+        F: FnMut(Axial) -> T,
+    {
+        // Working in local space
+        let vertex_a = axial!(size as i32, 0);
+        let vertex_b = vertex_a.make_vector(size as i32, rot_dir);
+        let vertex_c = vertex_b.make_vector(size as i32, rot_dir + 1);
+        let vertex_d = vertex_c.make_vector(size as i32, rot_dir + 2);
+        let vertex_e = vertex_d.make_vector(size as i32, rot_dir + 3);
+        let vertex_f = vertex_e.make_vector(size as i32, rot_dir + 4);
+
+        Self::make_shape(
+            &[vertex_a, vertex_b, vertex_c, vertex_d, vertex_e, vertex_f],
             square_bb,
             constructor,
         )
@@ -324,6 +359,23 @@ impl<T: Clone> HexShape<T> {
         self
     }
 
+    /// Apply a shape to a collection
+    ///
+    /// Transforms the coordinates according to the transform. before setting the data into the collection
+    ///
+    /// See the colony game example for a usecase.
+    pub fn apply_shape<COL: Collection<Axial, T>>(&self, col: &mut COL) {
+        self.shape.indexed_iter().for_each(|ele| {
+            if let Some(value) = ele.1.as_ref() {
+                // Apply transform
+                let coord =
+                    axial!(ele.0 .0 as i32, ele.0 .1 as i32).apply_transform(self.transform);
+
+                col.set(coord, value.clone());
+            }
+        });
+    }
+
     /// Get a reference to the shape's tile array.
     ///
     /// # Example
@@ -363,10 +415,22 @@ impl<T: Clone> HexShape<T> {
     }
 }
 
-#[allow(unused_imports)]
+#[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::*;
-    use crate::{axial, core::tile::Tile};
+    use crate::{axial, core::collection::Collection};
+
+    struct MockCollection {
+        tiles: HashMap<Axial, i32>,
+    }
+
+    impl Collection<Axial, i32> for MockCollection {
+        fn set(&mut self, coord: Axial, data: i32) {
+            self.tiles.insert(coord, data);
+        }
+    }
 
     #[test]
     fn translate() {
@@ -424,19 +488,19 @@ mod tests {
     #[test]
     fn make_shape() {
         assert_eq!(
-            HexShape::make_shape(&[], true, || 1),
+            HexShape::make_shape(&[], true, |_| 1),
             HexShape::new(None, None)
         );
 
         assert_eq!(
-            HexShape::make_shape(&[axial!(0, 0), axial!(2, 0)], false, || 1).get_hexes(),
+            HexShape::make_shape(&[axial!(0, 0), axial!(2, 0)], false, |_| 1).get_hexes(),
             Array::from_shape_simple_fn((3, 1), || Some(1))
         )
     }
 
     #[test]
     fn make_line() {
-        let default_tile_fn = &Tile::<i32>::default;
+        let default_tile_fn = |_| i32::default();
 
         assert_eq!(
             HexShape::make_line(0, 0, true, default_tile_fn),
@@ -467,19 +531,38 @@ mod tests {
     #[test]
     fn make_triangle() {
         assert_eq!(
-            HexShape::make_triangle(1, 0, true, || 1),
-            HexShape::make_shape(&[axial!(0, 0), axial!(1, 0), axial!(0, 1)], true, || 1)
+            HexShape::make_triangle(1, 0, true, |_| 1),
+            HexShape::make_shape(&[axial!(0, 0), axial!(1, 0), axial!(0, 1)], true, |_| 1)
         );
     }
 
     #[test]
     fn make_rhombus() {
         assert_eq!(
-            HexShape::make_rhombus(1, 0, true, || 1),
+            HexShape::make_rhombus(1, 0, true, |_| 1),
             HexShape::make_shape(
                 &[axial!(0, 0), axial!(1, 0), axial!(0, 1), axial!(1, 1)],
                 true,
-                || 1
+                |_| 1
+            )
+        );
+    }
+
+    #[test]
+    fn make_hexagon() {
+        assert_eq!(
+            HexShape::make_hexagon(1, 0, true, |_| 1),
+            HexShape::make_shape(
+                &[
+                    axial!(1, 0),
+                    axial!(2, 0),
+                    axial!(2, 1),
+                    axial!(1, 2),
+                    axial!(0, 2),
+                    axial!(0, 1)
+                ],
+                true,
+                |_| 1
             )
         );
     }
@@ -487,15 +570,15 @@ mod tests {
     #[test]
     fn scale() {
         assert_eq!(
-            HexShape::make_rhombus(1, 0, true, || 1).scale(vector2d!(2.0, 2.0)),
-            HexShape::make_rhombus(3, 0, true, || 1)
+            HexShape::make_rhombus(1, 0, true, |_| 1).scale(vector2d!(2.0, 2.0)),
+            HexShape::make_rhombus(3, 0, true, |_| 1)
         );
 
         assert_eq!(
-            HexShape::make_rhombus(1, 0, true, || 1)
+            HexShape::make_rhombus(1, 0, true, |_| 1)
                 .scale(vector2d!(2.0, 2.0))
                 .scale(vector2d!(0.5, 0.5)),
-            HexShape::make_rhombus(1, 0, true, || 1)
+            HexShape::make_rhombus(1, 0, true, |_| 1)
         );
     }
 
@@ -510,14 +593,29 @@ mod tests {
 
     #[test]
     fn set_hexes() {
-        let shape = HexShape::make_rhombus(1, 0, true, || 1);
+        let shape = HexShape::make_rhombus(1, 0, true, |_| 1);
         let new_arr = Array::from_shape_simple_fn((1, 1), || Some(1));
         assert_eq!(shape.set_hexes(new_arr.clone()).get_hexes(), new_arr);
     }
 
     #[test]
+    fn apply_shape() {
+        let mut col = MockCollection {
+            tiles: Default::default(),
+        };
+        HexShape::make_triangle(2, 0, true, |_| 1).apply_shape(&mut col);
+
+        for (coord, data) in HexShape::make_triangle(2, 0, true, |_| 1)
+            .get_hexes()
+            .indexed_iter()
+        {
+            assert!(col.tiles.get(&axial!(coord.0 as i32, coord.1 as i32)) == data.as_ref())
+        }
+    }
+
+    #[test]
     fn get_hexes() {
-        let shape = HexShape::make_rhombus(1, 0, true, || 1);
+        let shape = HexShape::make_rhombus(1, 0, true, |_| 1);
         assert_eq!(
             shape.get_hexes(),
             Array::from_shape_simple_fn((2, 2), || Some(1))
@@ -526,7 +624,7 @@ mod tests {
 
     #[test]
     fn get_hexes_mut() {
-        let mut shape = HexShape::make_rhombus(1, 0, true, || 1);
+        let mut shape = HexShape::make_rhombus(1, 0, true, |_| 1);
         assert_eq!(
             shape.get_hexes_mut(),
             &mut Array::from_shape_simple_fn((2, 2), || Some(1))

@@ -17,6 +17,7 @@ libm = {version = "0.2.11", default-features = false}
 
 [dev-dependencies]
 assert_float_eq = "1"
+rand = "0.8.5"
 
 [features]
 default = ["std"]
