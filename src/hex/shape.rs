@@ -417,8 +417,23 @@ impl<T: Clone> HexShape<T> {
 
 #[allow(unused_imports)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::*;
-    use crate::{axial, core::tile::Tile};
+    use crate::{
+        axial,
+        core::{collection::Collection, tile::Tile},
+    };
+
+    struct MockCollection {
+        tiles: HashMap<Axial, i32>,
+    }
+
+    impl Collection<Axial, i32> for MockCollection {
+        fn set(&mut self, coord: Axial, data: i32) {
+            self.tiles.insert(coord, data);
+        }
+    }
 
     #[test]
     fn translate() {
@@ -584,6 +599,21 @@ mod tests {
         let shape = HexShape::make_rhombus(1, 0, true, |_| 1);
         let new_arr = Array::from_shape_simple_fn((1, 1), || Some(1));
         assert_eq!(shape.set_hexes(new_arr.clone()).get_hexes(), new_arr);
+    }
+
+    #[test]
+    fn apply_shape() {
+        let mut col = MockCollection {
+            tiles: Default::default(),
+        };
+        HexShape::make_triangle(2, 0, true, |_| 1).apply_shape(&mut col);
+
+        for (coord, data) in HexShape::make_triangle(2, 0, true, |_| 1)
+            .get_hexes()
+            .indexed_iter()
+        {
+            assert!(col.tiles.get(&axial!(coord.0 as i32, coord.1 as i32)) == data.as_ref())
+        }
     }
 
     #[test]
