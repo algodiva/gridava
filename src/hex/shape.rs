@@ -13,9 +13,6 @@ use crate::{
 
 use super::coordinate::Axial;
 
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
-
 /// A shape is a collection of coordinates.
 ///
 /// Each coordinate is a vector that 'points' to the origin coordinate creating a shape local space.

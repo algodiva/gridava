@@ -4,12 +4,9 @@ use crate::lib::*;
 
 use super::{
     edge::{Edge, EdgeDirection},
-    vertex::{vertex, Vertex, VertexSpin},
+    vertex::{vertex, Vertex, VertexDirection},
 };
 use crate::{core::transform::Transform, edge};
-
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
 
 /// Axial based coordinates for hexagon grids.
 ///
@@ -286,6 +283,20 @@ impl Axial {
         true
     }
 
+    pub fn vertex(&self, vert_dir: VertexDirection) -> Vertex {
+        let x = if self.q > 0 {
+            (2 * self.q) - 1
+        } else {
+            (2 * self.q) - 1
+        };
+        let y = if self.r > 0 {
+            (2 * self.r) - 1
+        } else {
+            (2 * self.r) - 1
+        };
+        vertex!(x, y) + Vertex::from(vert_dir)
+    }
+
     /// Generates all 6 vertices that are associated with this tile.
     ///
     /// See [`Vertex`].
@@ -300,12 +311,12 @@ impl Axial {
     /// ```
     pub fn vertices(&self) -> [Vertex; 6] {
         [
-            vertex!(self.q, self.r, VertexSpin::Up),
-            vertex!(self.q + 1, self.r - 1, VertexSpin::Down),
-            vertex!(self.q, self.r + 1, VertexSpin::Up),
-            vertex!(self.q, self.r, VertexSpin::Down),
-            vertex!(self.q - 1, self.r + 1, VertexSpin::Up),
-            vertex!(self.q, self.r - 1, VertexSpin::Down),
+            self.vertex(VertexDirection::Up),
+            self.vertex(VertexDirection::UpRight),
+            self.vertex(VertexDirection::DownRight),
+            self.vertex(VertexDirection::Down),
+            self.vertex(VertexDirection::DownLeft),
+            self.vertex(VertexDirection::UpLeft),
         ]
     }
 
@@ -353,28 +364,28 @@ impl Axial {
                 // Front is in the positive q direction here.
                 return match dir {
                     HexDirection::Front => Some([
-                        vertex!(self.q + 1, self.q - 1, VertexSpin::Down),
-                        vertex!(self.q, self.q + 1, VertexSpin::Up),
+                        self.vertex(VertexDirection::UpRight),
+                        self.vertex(VertexDirection::DownRight),
                     ]),
                     HexDirection::FrontRight => Some([
-                        vertex!(self.q, self.q + 1, VertexSpin::Up),
-                        vertex!(self.q, self.q, VertexSpin::Down),
+                        self.vertex(VertexDirection::DownRight),
+                        self.vertex(VertexDirection::Down),
                     ]),
                     HexDirection::BackRight => Some([
-                        vertex!(self.q, self.q, VertexSpin::Down),
-                        vertex!(self.q - 1, self.q + 1, VertexSpin::Up),
+                        self.vertex(VertexDirection::Down),
+                        self.vertex(VertexDirection::DownLeft),
                     ]),
                     HexDirection::Back => Some([
-                        vertex!(self.q - 1, self.q + 1, VertexSpin::Up),
-                        vertex!(self.q, self.q - 1, VertexSpin::Down),
+                        self.vertex(VertexDirection::DownLeft),
+                        self.vertex(VertexDirection::UpLeft),
                     ]),
                     HexDirection::BackLeft => Some([
-                        vertex!(self.q, self.q - 1, VertexSpin::Down),
-                        vertex!(self.q, self.q, VertexSpin::Up),
+                        self.vertex(VertexDirection::UpLeft),
+                        self.vertex(VertexDirection::Up),
                     ]),
                     HexDirection::FrontLeft => Some([
-                        vertex!(self.q, self.q, VertexSpin::Up),
-                        vertex!(self.q + 1, self.q - 1, VertexSpin::Down),
+                        self.vertex(VertexDirection::Up),
+                        self.vertex(VertexDirection::UpRight),
                     ]),
                 };
             }
@@ -1073,48 +1084,48 @@ mod tests {
         assert_eq!(
             axial!(0, 0).shared_vert_two(axial!(1, 0)).unwrap(),
             [
-                vertex!(1, -1, VertexSpin::Down),
-                vertex!(0, 1, VertexSpin::Up),
+                axial!(0, 0).vertex(VertexDirection::UpRight),
+                axial!(0, 0).vertex(VertexDirection::DownRight),
             ]
         );
 
         assert_eq!(
             axial!(0, 0).shared_vert_two(axial!(0, 1)).unwrap(),
             [
-                vertex!(0, 1, VertexSpin::Up),
-                vertex!(0, 0, VertexSpin::Down),
+                axial!(0, 0).vertex(VertexDirection::DownRight),
+                axial!(0, 0).vertex(VertexDirection::Down),
             ]
         );
 
         assert_eq!(
             axial!(0, 0).shared_vert_two(axial!(-1, 1)).unwrap(),
             [
-                vertex!(0, 0, VertexSpin::Down),
-                vertex!(-1, 1, VertexSpin::Up),
+                axial!(0, 0).vertex(VertexDirection::Down),
+                axial!(0, 0).vertex(VertexDirection::DownLeft),
             ]
         );
 
         assert_eq!(
             axial!(0, 0).shared_vert_two(axial!(-1, 0)).unwrap(),
             [
-                vertex!(-1, 1, VertexSpin::Up),
-                vertex!(0, -1, VertexSpin::Down),
+                axial!(0, 0).vertex(VertexDirection::DownLeft),
+                axial!(0, 0).vertex(VertexDirection::UpLeft),
             ]
         );
 
         assert_eq!(
             axial!(0, 0).shared_vert_two(axial!(0, -1)).unwrap(),
             [
-                vertex!(0, -1, VertexSpin::Down),
-                vertex!(0, 0, VertexSpin::Up),
+                axial!(0, 0).vertex(VertexDirection::UpLeft),
+                axial!(0, 0).vertex(VertexDirection::Up),
             ]
         );
 
         assert_eq!(
             axial!(1, 1).shared_vert_two(axial!(2, 0)).unwrap(),
             [
-                vertex!(1, 1, VertexSpin::Up),
-                vertex!(2, 0, VertexSpin::Down),
+                axial!(1, 1).vertex(VertexDirection::Up),
+                axial!(1, 1).vertex(VertexDirection::UpRight),
             ]
         );
     }
@@ -1125,21 +1136,21 @@ mod tests {
             axial!(1, 1)
                 .shared_vert_three(axial!(2, 0), axial!(2, 1))
                 .unwrap(),
-            vertex!(2, 0, VertexSpin::Down)
+            axial!(2, 0).vertex(VertexDirection::Down)
         );
 
         assert_eq!(
             axial!(1, 1)
                 .shared_vert_three(axial!(1, 2), axial!(2, 1))
                 .unwrap(),
-            vertex!(1, 2, VertexSpin::Up)
+            axial!(1, 2).vertex(VertexDirection::Up)
         );
 
         assert_eq!(
             axial!(0, 0)
                 .shared_vert_three(axial!(1, 0), axial!(0, 1))
                 .unwrap(),
-            vertex!(0, 1, VertexSpin::Up)
+            axial!(0, 1).vertex(VertexDirection::Up)
         );
 
         assert!(axial!(0, 0)
