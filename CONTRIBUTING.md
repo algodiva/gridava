@@ -1,4 +1,4 @@
-# Contributing to GridAva
+# Contributing to Gridava
 
 Thank you for considering contributing to GridAva! Contributions are what make open-source projects a thriving and collaborative environment, and we appreciate your interest in improving this project. Here’s a guide to help you get started.
 
