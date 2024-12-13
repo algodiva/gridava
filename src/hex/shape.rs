@@ -1,6 +1,6 @@
 //! Shapes in a hex grid.
 
-use ndarray::{array, Array, Array2};
+use crate::lib::*;
 
 use crate::{
     axial,

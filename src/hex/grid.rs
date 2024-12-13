@@ -1,11 +1,13 @@
 //! The entity that owns tiles.
 
+use crate::lib::*;
+
+use super::coordinate::Axial;
+
 use crate::axial;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-
-use super::coordinate::Axial;
 
 /// Enum denoting orientation of hexagons in a grid.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -17,11 +19,6 @@ pub enum HexOrientation {
     /// The top of a hexagon is pointy
     PointyTop,
 }
-
-// Because Rust has determined to hide a constant behind an 'unstable' tag we restate it here.
-/// Constant calculation of square root of 3.
-#[allow(clippy::excessive_precision)]
-pub const SQRT_3: f64 = 1.732050807568877293527446341505872367_f64;
 
 /// A helper converter struct that will help facilitate conversion to and from the grid and world space.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
