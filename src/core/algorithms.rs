@@ -122,7 +122,15 @@ where
 
 #[cfg(all(test, any(feature = "std", feature = "alloc")))]
 mod tests {
+    use std::format;
+
     use super::*;
+
+    #[test]
+    fn fmt() {
+        let err = FFError::InvalidSeed;
+        assert!(format!("{err}") == "provided seed is out of bounds of the provided array")
+    }
 
     #[test]
     fn flood_fill() {
