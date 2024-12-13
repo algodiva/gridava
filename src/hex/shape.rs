@@ -415,15 +415,12 @@ impl<T: Clone> HexShape<T> {
     }
 }
 
-#[allow(unused_imports)]
+#[cfg(test)]
 mod tests {
     use std::collections::HashMap;
 
     use super::*;
-    use crate::{
-        axial,
-        core::{collection::Collection, tile::Tile},
-    };
+    use crate::{axial, core::collection::Collection};
 
     struct MockCollection {
         tiles: HashMap<Axial, i32>,
