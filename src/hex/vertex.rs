@@ -103,13 +103,44 @@ pub use vertex;
 impl From<VertexDirection> for Vertex {
     fn from(value: VertexDirection) -> Self {
         match value {
-            VertexDirection::Up => vertex!(1, -2),
-            VertexDirection::UpRight => vertex!(2, -1),
-            VertexDirection::DownRight => vertex!(1, 0),
-            VertexDirection::Down => vertex!(0, 1),
-            VertexDirection::DownLeft => vertex!(-1, 0),
-            VertexDirection::UpLeft => vertex!(0, -1),
+            VertexDirection::Up => vertex!(0, -1),
+            VertexDirection::UpRight => vertex!(1, 0),
+            VertexDirection::DownRight => vertex!(0, 1),
+            VertexDirection::Down => vertex!(-1, 2),
+            VertexDirection::DownLeft => vertex!(-2, 1),
+            VertexDirection::UpLeft => vertex!(-1, 0),
         }
+    }
+}
+
+impl Neg for VertexDirection {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        match self {
+            VertexDirection::Up => VertexDirection::Down,
+            VertexDirection::UpRight => VertexDirection::DownLeft,
+            VertexDirection::DownRight => VertexDirection::UpLeft,
+            VertexDirection::Down => VertexDirection::Up,
+            VertexDirection::DownLeft => VertexDirection::UpRight,
+            VertexDirection::UpLeft => VertexDirection::DownRight,
+        }
+    }
+}
+
+impl From<Axial> for Vertex {
+    fn from(value: Axial) -> Self {
+        let x = match value.r <= 0 {
+            true => (2 * value.q) - 1, // self.r <= 0
+            false => 2 * value.q,      // self.r > 0
+        };
+
+        let y = match value.r > 0 {
+            true => (2 * value.r) - 1, // self.r > 0
+            false => 2 * value.r,      // self.r <= 0
+        };
+
+        vertex!(x, y)
     }
 }
 
@@ -119,29 +150,15 @@ impl From<Triangle> for Vertex {
     }
 }
 
-// impl TryFrom<Vertex> for VertexDirection {
-//     type Error = String;
-
-//     fn try_from(value: Vertex) -> Result<Self, Self::Error> {
-//         if !value.coord.is_triangle_face() {
-//             return Err("Cannot produce a value from a non vertex vertex.");
-//         }
-//         match value.coord.orientation() {
-//             TriOrientation::Up => ,
-//             TriOrientation::Down => todo!(),
-//         }
-//     }
-// }
-
 impl Vertex {
     /// Get all 3 adjacent hexes to this vertex.
     ///
     /// # Example
     /// ```
-    /// use gridava::hex::vertex::{Vertex, VertexSpin, vertex};
-    /// use gridava::hex::coordinate::Axial;
+    /// use gridava::hex::vertex::{Vertex, VertexDirection};
+    /// use gridava::hex::coordinate::{axial, Axial};
     ///
-    /// let coords = vertex!(2, 0, VertexSpin::Down).adjacent_hexes();
+    /// let coords = axial!(0,0).vertex(VertexDirection::Down).adjacent_hexes();
     /// ```
     pub fn adjacent_hexes(&self) -> Option<[Axial; 3]> {
         if let Some((coord, spin)) = self.try_to_axial() {
@@ -166,17 +183,41 @@ impl Vertex {
         &self.coord
     }
 
+    fn tri_to_axial(&self) -> Axial {
+        let q = match self.coord.y <= 0 {
+            true => (self.coord.x + 1) / 2, // self.y <= 0
+            false => self.coord.x / 2,      // self.y > 0
+        };
+
+        let r = match self.coord.y > 0 {
+            true => (self.coord.y + 1) / 2,
+            false => self.coord.y / 2,
+        };
+
+        axial!(q, r)
+    }
+
     pub fn try_to_axial(&self) -> Option<(Axial, VertexSpin)> {
         if !self.coord.is_triangle_face() {
             None
         } else {
-            match self.coord.orientation() {
-                TriOrientation::Up => {
-                    Some((axial!(self.coord.x, self.coord.y - 1), VertexSpin::Down))
-                }
-                TriOrientation::Down => {
-                    Some((axial!(self.coord.x - 1, self.coord.y + 2), VertexSpin::Up))
-                }
+            match (self.coord.orientation(), self.coord.y >= 0) {
+                (TriOrientation::Up, true) => Some((
+                    (*self + -Vertex::from(VertexDirection::Down)).tri_to_axial(),
+                    VertexSpin::Down,
+                )),
+                (TriOrientation::Up, false) => Some((
+                    (*self + Vertex::from(VertexDirection::Up)).tri_to_axial(),
+                    VertexSpin::Down,
+                )),
+                (TriOrientation::Down, true) => Some((
+                    (*self + -Vertex::from(VertexDirection::Up)).tri_to_axial(),
+                    VertexSpin::Up,
+                )),
+                (TriOrientation::Down, false) => Some((
+                    (*self + Vertex::from(VertexDirection::Down)).tri_to_axial(),
+                    VertexSpin::Up,
+                )),
             }
         }
     }
@@ -185,10 +226,10 @@ impl Vertex {
     ///
     /// # Example
     /// ```
-    /// use gridava::hex::vertex::{Vertex, VertexSpin, vertex};
-    /// use gridava::hex::coordinate::Axial;
+    /// use gridava::hex::vertex::{Vertex, VertexDirection};
+    /// use gridava::hex::coordinate::{axial, Axial};
     ///
-    /// let vertices = vertex!(2, 0, VertexSpin::Down).adjacent_vertices();
+    /// let vertices = axial!(0,0).vertex(VertexDirection::Down).adjacent_vertices();
     /// ```
     pub fn adjacent_vertices(&self) -> Option<[Self; 3]> {
         if !self.coord.is_triangle_face() {
@@ -206,9 +247,10 @@ impl Vertex {
     /// Generate the edges adjacent to this vertex.
     ///
     /// ```
-    /// use gridava::hex::vertex::{Vertex, VertexSpin, vertex};
+    /// use gridava::hex::vertex::{Vertex, VertexDirection};
+    /// use gridava::hex::coordinate::{axial, Axial};
     ///
-    /// let edges = vertex!(0,0,VertexSpin::Up).adjacent_edges();
+    /// let edges = axial!(0,0).vertex(VertexDirection::Down).adjacent_edges();
     /// ```
     pub fn adjacent_edges(&self) -> Option<[Edge; 3]> {
         if let Some((coord, spin)) = self.try_to_axial() {
@@ -232,9 +274,13 @@ impl Vertex {
     /// Compute the L1 distance between two vertices.
     ///
     /// ```
-    /// use gridava::hex::vertex::{Vertex, VertexSpin, vertex};
+    /// use gridava::hex::vertex::{Vertex, VertexDirection};
+    /// use gridava::hex::coordinate::{axial, Axial};
     ///
-    /// let dist = vertex!(0,0,VertexSpin::Up).distance(vertex!(1,0,VertexSpin::Up));
+    /// let verta = axial!(0,0).vertex(VertexDirection::Up);
+    /// let vertb = axial!(1,0).vertex(VertexDirection::Up);
+    ///
+    /// let dist = verta.distance(vertb);
     /// ```
     #[inline]
     pub fn distance(&self, b: Self) -> i32 {
@@ -309,9 +355,41 @@ impl Neg for Vertex {
 #[cfg(test)]
 mod tests {
 
-    use std::{print, println};
+    use std::println;
 
     use super::*;
+
+    #[test]
+    fn tri_to_axial() {
+        macro_rules! test {
+            ($a:expr) => {
+                let vert = Vertex::from($a);
+                assert_eq!($a, vert.tri_to_axial());
+            };
+        }
+        for q in -100..=100 {
+            for r in -100..=100 {
+                test!(axial!(q, r));
+            }
+        }
+    }
+
+    #[test]
+    fn from_axial() {
+        assert_eq!(Vertex::from(axial!(0, 0)), vertex!(-1, 0));
+
+        assert_eq!(Vertex::from(axial!(1, 0)), vertex!(1, 0));
+        assert_eq!(Vertex::from(axial!(2, 0)), vertex!(3, 0));
+        assert_eq!(Vertex::from(axial!(3, 0)), vertex!(5, 0));
+
+        assert_eq!(Vertex::from(axial!(0, 1)), vertex!(0, 1));
+        assert_eq!(Vertex::from(axial!(0, 2)), vertex!(0, 3));
+        assert_eq!(Vertex::from(axial!(0, 3)), vertex!(0, 5));
+
+        assert_eq!(Vertex::from(axial!(1, 1)), vertex!(2, 1));
+        assert_eq!(Vertex::from(axial!(1, 2)), vertex!(2, 3));
+        assert_eq!(Vertex::from(axial!(2, 2)), vertex!(4, 3));
+    }
 
     #[test]
     fn adjacent_hexes() {
@@ -321,7 +399,7 @@ mod tests {
                 .vertex(VertexDirection::UpRight)
                 .adjacent_hexes()
                 .unwrap(),
-            [axial!(0, 0), axial!(0, 1), axial!(-1, 1)]
+            [axial!(0, -1), axial!(0, 0), axial!(-1, 0)]
         );
         assert_eq!(
             vertex!(0, -2).adjacent_hexes().unwrap(),
@@ -441,12 +519,38 @@ mod tests {
 
     #[test]
     fn from_vd() {
-        assert_eq!(Vertex::from(VertexDirection::Up), vertex!(1, -2));
-        assert_eq!(Vertex::from(VertexDirection::UpRight), vertex!(2, -1));
-        assert_eq!(Vertex::from(VertexDirection::DownRight), vertex!(1, 0));
-        assert_eq!(Vertex::from(VertexDirection::Down), vertex!(0, 1));
-        assert_eq!(Vertex::from(VertexDirection::DownLeft), vertex!(-1, 0));
-        assert_eq!(Vertex::from(VertexDirection::UpLeft), vertex!(0, -1));
+        assert_eq!(Vertex::from(VertexDirection::Up), vertex!(0, -1));
+        assert_eq!(Vertex::from(VertexDirection::UpRight), vertex!(1, 0));
+        assert_eq!(Vertex::from(VertexDirection::DownRight), vertex!(0, 1));
+        assert_eq!(Vertex::from(VertexDirection::Down), vertex!(-1, 2));
+        assert_eq!(Vertex::from(VertexDirection::DownLeft), vertex!(-2, 1));
+        assert_eq!(Vertex::from(VertexDirection::UpLeft), vertex!(-1, 0));
+
+        // Neg
+        assert_eq!(
+            Vertex::from(VertexDirection::Up),
+            Vertex::from(-VertexDirection::Down)
+        );
+        assert_eq!(
+            Vertex::from(VertexDirection::UpRight),
+            Vertex::from(-VertexDirection::DownLeft)
+        );
+        assert_eq!(
+            Vertex::from(VertexDirection::DownRight),
+            Vertex::from(-VertexDirection::UpLeft)
+        );
+        assert_eq!(
+            Vertex::from(VertexDirection::Down),
+            Vertex::from(-VertexDirection::Up)
+        );
+        assert_eq!(
+            Vertex::from(VertexDirection::DownLeft),
+            Vertex::from(-VertexDirection::UpRight)
+        );
+        assert_eq!(
+            Vertex::from(VertexDirection::UpLeft),
+            Vertex::from(-VertexDirection::DownRight)
+        );
     }
 
     #[test]

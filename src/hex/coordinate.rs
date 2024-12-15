@@ -4,7 +4,7 @@ use crate::lib::*;
 
 use super::{
     edge::{Edge, EdgeDirection},
-    vertex::{vertex, Vertex, VertexDirection},
+    vertex::{Vertex, VertexDirection},
 };
 use crate::{core::transform::Transform, edge};
 
@@ -284,17 +284,12 @@ impl Axial {
     }
 
     pub fn vertex(&self, vert_dir: VertexDirection) -> Vertex {
-        let x = if self.q > 0 {
-            (2 * self.q) - 1
-        } else {
-            (2 * self.q) - 1
-        };
-        let y = if self.r > 0 {
-            (2 * self.r) - 1
-        } else {
-            (2 * self.r) - 1
-        };
-        vertex!(x, y) + Vertex::from(vert_dir)
+        let vert: Vertex = (*self).into();
+
+        match vert.coord.y > 0 {
+            true => vert + Vertex::from(vert_dir),    // y > 0
+            false => vert + -Vertex::from(-vert_dir), // y <= 0
+        }
     }
 
     /// Generates all 6 vertices that are associated with this tile.

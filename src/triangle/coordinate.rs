@@ -3,16 +3,10 @@
 use crate::lib::*;
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Hash, Debug, Default)]
 pub struct Triangle {
     pub x: i32,
     pub y: i32,
-}
-
-impl Default for Triangle {
-    fn default() -> Self {
-        triangle!(0, 0)
-    }
 }
 
 /// Helper macro to create [`Triangle`] structs.
@@ -33,9 +27,9 @@ pub enum TriOrientation {
 
 impl From<Triangle> for TriOrientation {
     fn from(value: Triangle) -> Self {
-        match value.x & 1 != 0 {
-            true => TriOrientation::Down,
-            false => TriOrientation::Up,
+        match value.x & 1 == 1 {
+            true => TriOrientation::Up,
+            false => TriOrientation::Down,
         }
     }
 }
@@ -73,12 +67,12 @@ impl From<TriDirection> for i32 {
 impl TriDirection {
     pub fn to_movement_vector(&self, orientation: TriOrientation) -> Triangle {
         match (self, orientation) {
-            (TriDirection::Left, TriOrientation::Up) => triangle!(-1, 1),
-            (TriDirection::Left, TriOrientation::Down) => triangle!(-1, -1),
-            (TriDirection::Right, TriOrientation::Up) => triangle!(1, 1),
-            (TriDirection::Right, TriOrientation::Down) => triangle!(1, -1),
-            (TriDirection::Base, TriOrientation::Up) => triangle!(1, -1),
-            (TriDirection::Base, TriOrientation::Down) => triangle!(-1, 1),
+            (TriDirection::Left, TriOrientation::Up) => triangle!(-1, -1),
+            (TriDirection::Left, TriOrientation::Down) => triangle!(-1, 1),
+            (TriDirection::Right, TriOrientation::Up) => triangle!(1, -1),
+            (TriDirection::Right, TriOrientation::Down) => triangle!(1, 1),
+            (TriDirection::Base, TriOrientation::Up) => triangle!(-1, 1),
+            (TriDirection::Base, TriOrientation::Down) => triangle!(1, -1),
         }
     }
 }
