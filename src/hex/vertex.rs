@@ -76,15 +76,19 @@ impl From<VertexDirection> for i32 {
 
 /// Vertex associated with hexagon grids.
 ///
-/// A hexagonal vertex follows the same ruleset as axial coordinates with one exception.
+/// A hexagonal vertex is aligned to a triangular grid with the origin tri(0,0) at vertex hex(0,0) [`VertexDirection::DownRight`].
 ///
-/// It needs to know its `spin`. Spin correlates to which side [`VertexSpin::Up`] or [`VertexSpin::Down`]
-/// has two hexagons.
+/// The triangular grid used for hexagon vertices also allows for hexagon centers to be used.
 ///
-/// See [`vertex`] for helper macro to instantiate these structs.
+/// To convert from axial to a vertex use the member function [`Axial::vertex()`].
+///
+/// To convert to axial from a vertex, use the member function [`Vertex::try_to_axial()`].
+///
+/// See [`Triangle`] for more information.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(PartialEq, Eq, Copy, Clone, Hash, Debug, Default)]
 pub struct Vertex {
+    /// Wrapped triangle coordinate struct used for hex vertices.
     pub coord: Triangle,
 }
 
@@ -179,6 +183,15 @@ impl Vertex {
         }
     }
 
+    /// Convert to [`Triangle`]
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::vertex::{vertex, Vertex};
+    /// use gridava::triangle::coordinate::Triangle;
+    ///
+    /// let tri = vertex!(0,0).into_inner();
+    /// ```
     pub fn into_inner(&self) -> &Triangle {
         &self.coord
     }
@@ -197,6 +210,18 @@ impl Vertex {
         axial!(q, r)
     }
 
+    /// Try to convert to an [`Axial`] coordinate representation.
+    ///
+    /// Produces [`None`] if the coordinate is not a tri face according to [`Triangle::is_triangle_face()`]
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::vertex::{vertex, Vertex, VertexDirection, VertexSpin};
+    /// use gridava::hex::coordinate::{axial, Axial};
+    ///
+    /// assert!(vertex!(-1, 0).try_to_axial().is_none());
+    /// assert_eq!(vertex!(0, 0).try_to_axial().unwrap(), (axial!(0, 1), VertexSpin::Up));
+    /// ```
     pub fn try_to_axial(&self) -> Option<(Axial, VertexSpin)> {
         if !self.coord.is_triangle_face() {
             None
@@ -392,6 +417,31 @@ mod tests {
     }
 
     #[test]
+    fn into_inner() {
+        assert_eq!(*vertex!(0, 0).into_inner(), triangle!(0, 0));
+    }
+
+    #[test]
+    fn try_to_axial() {
+        assert_eq!(
+            vertex!(0, 0).try_to_axial().unwrap(),
+            (axial!(0, 1), VertexSpin::Up)
+        );
+        assert_eq!(
+            vertex!(1, -1).try_to_axial().unwrap(),
+            (axial!(1, -1), VertexSpin::Down)
+        );
+        assert_eq!(
+            vertex!(0, -2).try_to_axial().unwrap(),
+            (axial!(0, 0), VertexSpin::Up)
+        );
+        assert_eq!(
+            vertex!(-1, 1).try_to_axial().unwrap(),
+            (axial!(0, 0), VertexSpin::Down)
+        );
+    }
+
+    #[test]
     fn adjacent_hexes() {
         println!("{:?}", axial!(-1, 0).vertex(VertexDirection::UpRight));
         assert_eq!(
@@ -409,6 +459,8 @@ mod tests {
             vertex!(1, 1).adjacent_hexes().unwrap(),
             [axial!(1, 0), axial!(1, 1), axial!(0, 1)]
         );
+
+        assert!(vertex!(-1, 0).adjacent_hexes().is_none());
     }
 
     #[test]
@@ -425,6 +477,8 @@ mod tests {
             vertex!(1, -1).adjacent_vertices().unwrap(),
             [vertex!(0, -2), vertex!(2, -2), vertex!(0, 0)]
         );
+
+        assert!(vertex!(-1, 0).adjacent_vertices().is_none());
     }
 
     #[test]
@@ -446,6 +500,8 @@ mod tests {
                 edge!(-1, 1, EdgeDirection::NorthEast),
             ]
         );
+
+        assert!(vertex!(-1, 0).adjacent_edges().is_none());
     }
 
     #[test]
@@ -551,6 +607,26 @@ mod tests {
             Vertex::from(VertexDirection::UpLeft),
             Vertex::from(-VertexDirection::DownRight)
         );
+    }
+
+    #[test]
+    fn math() {
+        let verta = vertex!(1, 1);
+        let vertb = vertex!(2, 0);
+
+        let mut vertc = verta;
+        vertc += vertb;
+        assert_eq!(vertc, vertex!(3, 1));
+
+        let mut vertc = verta;
+        vertc -= vertb;
+        assert_eq!(vertc, vertex!(-1, 1));
+
+        let vertc = verta * 2;
+        assert_eq!(vertc, vertex!(2, 2));
+
+        let vertc = vertex!(4, 0) / 2;
+        assert_eq!(vertc, vertex!(2, 0));
     }
 
     #[test]

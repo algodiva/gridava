@@ -283,6 +283,18 @@ impl Axial {
         true
     }
 
+    /// Generate a vertex
+    ///
+    /// Given an [`Axial`] coordinate and [`VertexDirection`] generate a [`Vertex`]
+    ///
+    /// # Example
+    /// ```
+    /// use gridava::hex::coordinate::{axial, Axial};
+    /// use gridava::hex::vertex::{vertex, Vertex, VertexDirection};
+    ///
+    /// let vert = axial!(0, 0).vertex(VertexDirection::Up);
+    /// assert_eq!(vert, vertex!(0, -2));
+    /// ```
     pub fn vertex(&self, vert_dir: VertexDirection) -> Vertex {
         let vert: Vertex = (*self).into();
 

@@ -2,10 +2,15 @@
 
 use crate::lib::*;
 
+/// A coordinate for a triangular grid.
+///
+/// Maps a coordinate to every triangular face and vertex on a triangular grid.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(PartialEq, Eq, Copy, Clone, Hash, Debug, Default)]
 pub struct Triangle {
+    /// X coordinate
     pub x: i32,
+    /// Y coordinate
     pub y: i32,
 }
 
@@ -18,10 +23,17 @@ macro_rules! triangle {
 }
 pub use triangle;
 
+/// Orientation of the triangle
+///
+/// Up => the base is facing downwards.
+///
+/// Down => base is facing upwards.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
 pub enum TriOrientation {
+    /// Upwards orientated triangle
     Up,
+    /// Downwards orientated triangle
     Down,
 }
 
@@ -34,6 +46,7 @@ impl From<Triangle> for TriOrientation {
     }
 }
 
+/// Primary directions of travel on a triangular grid.
 pub enum TriDirection {
     /// Left direction, correlates to negative x
     Left,
@@ -65,6 +78,7 @@ impl From<TriDirection> for i32 {
 }
 
 impl TriDirection {
+    /// Generates a vector for grid traversal given an orientation and direction.
     pub fn to_movement_vector(&self, orientation: TriOrientation) -> Triangle {
         match (self, orientation) {
             (TriDirection::Left, TriOrientation::Up) => triangle!(-1, -1),
@@ -78,26 +92,45 @@ impl TriDirection {
 }
 
 impl Triangle {
+    /// Computes the z coordinate
+    ///
+    /// z is calculated using the following rules:
+    /// - `x + y + z = 0` when y is even
+    /// - `x + y + z = 1` when y is odd
     pub fn compute_z(&self) -> i32 {
         -self.x - self.y + (self.y & 1)
     }
 
+    /// Determines if the coordinate is a face.
+    ///
+    /// Since the coordinates can map to faces or vertices it can be
+    /// beneficial to check if it is a face or not.
     pub fn is_triangle_face(&self) -> bool {
         self.x & 1 == self.y & 1
     }
 
+    /// Determines the orientation
+    ///
+    /// Follows the rule:
+    /// - [`TriOrientation::Up`] when x is odd
+    /// - [`TriOrientation::Down`] when x is even
     pub fn orientation(&self) -> TriOrientation {
         (*self).into()
     }
 
+    /// Constructs a vector
+    ///
+    /// Given a magnitude and direction creates a vector.
     pub fn make_vector(&self, magnitude: i32, rot_dir: i32) -> Self {
         *self + TriDirection::from(rot_dir).to_movement_vector((*self).into()) * magnitude
     }
 
+    /// Generate a neighbor coordinate
     pub fn neighbor(&self, direction: TriDirection) -> Self {
         self.make_vector(1, direction.into())
     }
 
+    /// Generates the neighboring coordinates
     pub fn neighbors(&self) -> [Self; 3] {
         [
             self.neighbor(TriDirection::Left),
@@ -106,6 +139,7 @@ impl Triangle {
         ]
     }
 
+    /// Checks if all coordinates are neighbors
     pub fn are_neighbors(&self, coords: &[Self]) -> bool {
         let neighbors = self.neighbors();
 
@@ -117,6 +151,7 @@ impl Triangle {
         true
     }
 
+    /// Computes L1 distance between coordinates
     pub fn distance(&self, b: Self) -> i32 {
         (self.x - b.x)
             .abs()
@@ -178,5 +213,32 @@ impl Neg for Triangle {
 
     fn neg(self) -> Self::Output {
         triangle!(-self.x, -self.y)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn are_neighbors() {
+        assert!(triangle!(0, 2).are_neighbors(&[
+            triangle!(1, 1),
+            triangle!(1, 3),
+            triangle!(-1, 3)
+        ]));
+        assert!(!triangle!(0, 2).are_neighbors(&[triangle!(0, 0)]));
+    }
+
+    #[test]
+    fn math() {
+        let tria = triangle!(1, 1);
+        let mut tricb = tria;
+
+        tricb += tria;
+        assert_eq!(tricb, triangle!(2, 2));
+
+        tricb -= tria;
+        assert_eq!(tricb, triangle!(1, 1));
     }
 }
