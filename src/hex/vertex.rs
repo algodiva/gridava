@@ -223,9 +223,7 @@ impl Vertex {
     /// assert_eq!(vertex!(0, 0).try_to_axial().unwrap(), (axial!(0, 1), VertexSpin::Up));
     /// ```
     pub fn try_to_axial(&self) -> Option<(Axial, VertexSpin)> {
-        if !self.coord.is_triangle_face() {
-            None
-        } else {
+        if self.coord.is_triangle_face() {
             match (self.coord.orientation(), self.coord.y >= 0) {
                 (TriOrientation::Up, true) => Some((
                     (*self + -Vertex::from(VertexDirection::Down)).tri_to_axial(),
@@ -244,6 +242,8 @@ impl Vertex {
                     VertexSpin::Up,
                 )),
             }
+        } else {
+            None
         }
     }
 
