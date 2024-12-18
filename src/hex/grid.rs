@@ -2,12 +2,7 @@
 
 use crate::lib::*;
 
-use super::coordinate::Axial;
-
-use crate::axial;
-
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+use super::coordinate::{axial, Axial};
 
 /// Enum denoting orientation of hexagons in a grid.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]

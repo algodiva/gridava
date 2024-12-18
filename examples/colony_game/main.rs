@@ -180,17 +180,21 @@ pub fn place_house(
     let player_id = player.id;
 
     // Check if we have a house in an adjacent vertex.
-    let is_house_adjacent = vert.adjacent_vertices().iter().any(|vert| {
-        board
-            .verts
-            .get(vert)
-            .map_or(false, |val| val.vert_type != DevType::None)
+    let is_house_adjacent = vert.adjacent_vertices().is_some_and(|verts| {
+        verts.iter().any(|vert| {
+            board
+                .verts
+                .get(vert)
+                .map_or(false, |val| val.vert_type != DevType::None)
+        })
     });
 
     // Check if we have a road on one of our adjacent edges.
-    let is_on_road = vert.adjacent_edges().iter().any(|edge| {
-        board.edges.get(edge).map_or(false, |val| {
-            val.edge_type == EdgeType::Road && val.owning_player == player_id
+    let is_on_road = vert.adjacent_edges().is_some_and(|edges| {
+        edges.iter().any(|edge| {
+            board.edges.get(edge).map_or(false, |val| {
+                val.edge_type == EdgeType::Road && val.owning_player == player_id
+            })
         })
     });
 

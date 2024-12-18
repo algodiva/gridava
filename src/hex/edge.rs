@@ -1,14 +1,11 @@
 //! Handles edges in a hexagonal grid.
 
-// use crate::vertex;
+use crate::lib::*;
 
 use super::{
     coordinate::{axial, Axial, HexDirection},
-    vertex::{vertex, Vertex, VertexSpin},
+    vertex::{Vertex, VertexDirection},
 };
-
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
 
 /// Orientation of an edge.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -135,16 +132,16 @@ impl Edge {
     pub fn endpoints(&self) -> [Vertex; 2] {
         match self.dir {
             EdgeDirection::West => [
-                vertex!(self.q - 1, self.r + 1, VertexSpin::Up),
-                vertex!(self.q, self.r - 1, VertexSpin::Down),
+                axial!(self.q, self.r).vertex(VertexDirection::DownLeft),
+                axial!(self.q, self.r).vertex(VertexDirection::UpLeft),
             ],
             EdgeDirection::NorthWest => [
-                vertex!(self.q, self.r - 1, VertexSpin::Down),
-                vertex!(self.q, self.r, VertexSpin::Up),
+                axial!(self.q, self.r).vertex(VertexDirection::UpLeft),
+                axial!(self.q, self.r).vertex(VertexDirection::Up),
             ],
             EdgeDirection::NorthEast => [
-                vertex!(self.q, self.r, VertexSpin::Up),
-                vertex!(self.q + 1, self.r - 1, VertexSpin::Down),
+                axial!(self.q, self.r).vertex(VertexDirection::Up),
+                axial!(self.q, self.r).vertex(VertexDirection::UpRight),
             ],
         }
     }
@@ -248,32 +245,32 @@ mod tests {
         assert_eq!(
             edge!(0, 0, EdgeDirection::West).endpoints(),
             [
-                vertex!(-1, 1, VertexSpin::Up),
-                vertex!(0, -1, VertexSpin::Down),
+                axial!(0, 0).vertex(VertexDirection::DownLeft),
+                axial!(0, 0).vertex(VertexDirection::UpLeft),
             ]
         );
 
         assert_eq!(
             edge!(0, 0, EdgeDirection::NorthWest).endpoints(),
             [
-                vertex!(0, -1, VertexSpin::Down),
-                vertex!(0, 0, VertexSpin::Up),
+                axial!(0, 0).vertex(VertexDirection::UpLeft),
+                axial!(0, 0).vertex(VertexDirection::Up),
             ]
         );
 
         assert_eq!(
             edge!(0, 0, EdgeDirection::NorthEast).endpoints(),
             [
-                vertex!(0, 0, VertexSpin::Up),
-                vertex!(1, -1, VertexSpin::Down),
+                axial!(0, 0).vertex(VertexDirection::Up),
+                axial!(0, 0).vertex(VertexDirection::UpRight),
             ]
         );
 
         assert_eq!(
             edge!(1, 0, EdgeDirection::NorthEast).endpoints(),
             [
-                vertex!(1, 0, VertexSpin::Up),
-                vertex!(2, -1, VertexSpin::Down),
+                axial!(1, 0).vertex(VertexDirection::Up),
+                axial!(1, 0).vertex(VertexDirection::UpRight),
             ]
         );
     }

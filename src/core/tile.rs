@@ -1,7 +1,6 @@
 //! Tiles are represented by this struct in the library.
 
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+use crate::lib::*;
 
 /// The tile used by this library.
 ///

@@ -122,12 +122,14 @@ where
 
 #[cfg(all(test, any(feature = "std", feature = "alloc")))]
 mod tests {
-    use alloc::format;
-
     use super::*;
 
     #[test]
     fn fmt() {
+        #[cfg(not(feature = "std"))]
+        use alloc::format;
+        #[cfg(feature = "std")]
+        use std::format;
         let err = FFError::InvalidSeed;
         assert!(format!("{err}") == "provided seed is out of bounds of the provided array")
     }
