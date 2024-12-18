@@ -293,15 +293,10 @@ impl Axial {
     /// use gridava::hex::vertex::{vertex, Vertex, VertexDirection};
     ///
     /// let vert = axial!(0, 0).vertex(VertexDirection::Up);
-    /// assert_eq!(vert, vertex!(0, -2));
+    /// assert_eq!(vert, vertex!(1, 0, 1));
     /// ```
     pub fn vertex(&self, vert_dir: VertexDirection) -> Vertex {
-        let vert: Vertex = (*self).into();
-
-        match vert.coord.y > 0 {
-            true => vert + Vertex::from(vert_dir),    // y > 0
-            false => vert + -Vertex::from(-vert_dir), // y <= 0
-        }
+        (*self, vert_dir).into()
     }
 
     /// Generates all 6 vertices that are associated with this tile.

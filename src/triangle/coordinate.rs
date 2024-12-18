@@ -12,22 +12,28 @@ pub struct Triangle {
     pub x: i32,
     /// Y coordinate
     pub y: i32,
+    /// Z coordinate
+    pub z: i32,
 }
 
 /// Helper macro to create [`Triangle`] structs.
 #[macro_export]
 macro_rules! triangle {
-    ($x:expr, $y:expr) => {
-        Triangle { x: $x, y: $y }
+    ($x:expr, $y:expr, $z:expr) => {
+        Triangle {
+            x: $x,
+            y: $y,
+            z: $z,
+        }
     };
 }
 pub use triangle;
 
-/// Orientation of the triangle
+/// Orientation of the tri-coordinate
 ///
-/// Up => the base is facing downwards.
-///
-/// Down => base is facing upwards.
+/// - Up => the base is facing downwards.
+/// - Down => base is facing upwards
+/// - Vert => vertex of a triangle
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
 pub enum TriOrientation {
@@ -39,9 +45,9 @@ pub enum TriOrientation {
 
 impl From<Triangle> for TriOrientation {
     fn from(value: Triangle) -> Self {
-        match value.x & 1 == 1 {
-            true => TriOrientation::Up,
-            false => TriOrientation::Down,
+        match value.x + value.y + value.z {
+            sum if sum & 1 == 1 => TriOrientation::Down,
+            _ => TriOrientation::Up,
         }
     }
 }
@@ -77,57 +83,56 @@ impl From<TriDirection> for i32 {
     }
 }
 
-impl TriDirection {
-    /// Generates a vector for grid traversal given an orientation and direction.
-    pub fn to_movement_vector(&self, orientation: TriOrientation) -> Triangle {
-        match (self, orientation) {
-            (TriDirection::Left, TriOrientation::Up) => triangle!(-1, -1),
-            (TriDirection::Left, TriOrientation::Down) => triangle!(-1, 1),
-            (TriDirection::Right, TriOrientation::Up) => triangle!(1, -1),
-            (TriDirection::Right, TriOrientation::Down) => triangle!(1, 1),
-            (TriDirection::Base, TriOrientation::Up) => triangle!(-1, 1),
-            (TriDirection::Base, TriOrientation::Down) => triangle!(1, -1),
+impl Triangle {
+    /// Compute the z coordinate for a vertex coordinate
+    ///
+    /// An important distinction is made for this type of coordinate since for
+    /// verts, the sum must equal 0.
+    pub fn compute_z_vert(&self) -> Self {
+        Triangle {
+            z: -self.x - self.y,
+            ..*self
         }
     }
-}
 
-impl Triangle {
-    /// Computes the z coordinate
-    ///
-    /// z is calculated using the following rules:
-    /// - `x + y + z = 0` when y is even
-    /// - `x + y + z = 1` when y is odd
-    pub fn compute_z(&self) -> i32 {
-        -self.x - self.y + (self.y & 1)
+    /// Compute the z coordinate for a tri-face coordinate
+    pub fn compute_z(&self, orientation: TriOrientation) -> Self {
+        match orientation {
+            TriOrientation::Up => Triangle {
+                z: 2 - self.x - self.y,
+                ..*self
+            },
+            TriOrientation::Down => Triangle {
+                z: 1 - self.x - self.y,
+                ..*self
+            },
+        }
     }
-
     /// Determines if the coordinate is a face.
     ///
     /// Since the coordinates can map to faces or vertices it can be
     /// beneficial to check if it is a face or not.
-    pub fn is_triangle_face(&self) -> bool {
-        self.x & 1 == self.y & 1
+    pub fn is_tri_face(&self) -> bool {
+        (self.x + self.y + self.z) != 0
     }
 
     /// Determines the orientation
-    ///
-    /// Follows the rule:
-    /// - [`TriOrientation::Up`] when x is odd
-    /// - [`TriOrientation::Down`] when x is even
     pub fn orientation(&self) -> TriOrientation {
         (*self).into()
     }
 
-    /// Constructs a vector
-    ///
-    /// Given a magnitude and direction creates a vector.
-    pub fn make_vector(&self, magnitude: i32, rot_dir: i32) -> Self {
-        *self + TriDirection::from(rot_dir).to_movement_vector((*self).into()) * magnitude
-    }
-
     /// Generate a neighbor coordinate
     pub fn neighbor(&self, direction: TriDirection) -> Self {
-        self.make_vector(1, direction.into())
+        match (direction, self.orientation()) {
+            (TriDirection::Left, TriOrientation::Up) => triangle!(self.x - 1, self.y, self.z),
+            (TriDirection::Base, TriOrientation::Up) => triangle!(self.x, self.y - 1, self.z),
+            (TriDirection::Right, TriOrientation::Up) => triangle!(self.x, self.y, self.z - 1),
+            (TriDirection::Left, TriOrientation::Down) => triangle!(self.x, self.y, self.z + 1),
+            (TriDirection::Base, TriOrientation::Down) => triangle!(self.x, self.y + 1, self.z),
+            (TriDirection::Right, TriOrientation::Down) => {
+                triangle!(self.x + 1, self.y, self.z)
+            }
+        }
     }
 
     /// Generates the neighboring coordinates
@@ -153,66 +158,10 @@ impl Triangle {
 
     /// Computes L1 distance between coordinates
     pub fn distance(&self, b: Self) -> i32 {
-        (self.x - b.x)
-            .abs()
-            .max((self.y - b.y).abs())
-            .max((self.compute_z() - b.compute_z()).abs())
-    }
-}
-
-impl Add for Triangle {
-    type Output = Self;
-
-    fn add(self, rhs: Triangle) -> Self::Output {
-        triangle!(self.x + rhs.x, self.y + rhs.y)
-    }
-}
-
-impl AddAssign for Triangle {
-    fn add_assign(&mut self, rhs: Self) {
-        *self = *self + rhs;
-    }
-}
-
-impl Sub for Triangle {
-    type Output = Triangle;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        triangle!(self.x - rhs.x, self.y - rhs.y)
-    }
-}
-
-impl SubAssign for Triangle {
-    fn sub_assign(&mut self, rhs: Self) {
-        *self = *self - rhs;
-    }
-}
-
-impl<T> Mul<T> for Triangle
-where
-    i32: Mul<T, Output = i32>,
-    T: Copy,
-{
-    type Output = Triangle;
-
-    fn mul(self, rhs: T) -> Self::Output {
-        triangle!(self.x * rhs, self.y * rhs)
-    }
-}
-
-impl Div<i32> for Triangle {
-    type Output = Self;
-
-    fn div(self, rhs: i32) -> Self::Output {
-        triangle!(self.x / rhs, self.y / rhs)
-    }
-}
-
-impl Neg for Triangle {
-    type Output = Self;
-
-    fn neg(self) -> Self::Output {
-        triangle!(-self.x, -self.y)
+        let dx = (self.x - b.x).abs();
+        let dy = (self.y - b.y).abs();
+        let dz = (self.z - b.z).abs();
+        dx + dy + dz
     }
 }
 
@@ -222,23 +171,11 @@ mod tests {
 
     #[test]
     fn are_neighbors() {
-        assert!(triangle!(0, 2).are_neighbors(&[
-            triangle!(1, 1),
-            triangle!(1, 3),
-            triangle!(-1, 3)
+        assert!(triangle!(1, 0, 0).are_neighbors(&[
+            triangle!(1, 1, 0),
+            triangle!(2, 0, 0),
+            triangle!(1, 0, 1)
         ]));
-        assert!(!triangle!(0, 2).are_neighbors(&[triangle!(0, 0)]));
-    }
-
-    #[test]
-    fn math() {
-        let tria = triangle!(1, 1);
-        let mut tricb = tria;
-
-        tricb += tria;
-        assert_eq!(tricb, triangle!(2, 2));
-
-        tricb -= tria;
-        assert_eq!(tricb, triangle!(1, 1));
+        assert!(!triangle!(0, 0, 1).are_neighbors(&[triangle!(2, 0, 0)]));
     }
 }
