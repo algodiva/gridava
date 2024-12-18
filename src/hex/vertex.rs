@@ -272,7 +272,7 @@ impl Vertex {
     /// ```
     #[inline]
     pub fn distance(&self, b: Self) -> i32 {
-        self.coord.distance(b.coord)
+        self.coord.distance(&b.coord)
     }
 }
 

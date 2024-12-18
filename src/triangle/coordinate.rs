@@ -62,27 +62,6 @@ pub enum TriDirection {
     Base,
 }
 
-impl From<i32> for TriDirection {
-    fn from(value: i32) -> Self {
-        match value.rem_euclid(3) {
-            0 => TriDirection::Left,
-            1 => TriDirection::Right,
-            2 => TriDirection::Base,
-            _ => unreachable!(),
-        }
-    }
-}
-
-impl From<TriDirection> for i32 {
-    fn from(value: TriDirection) -> Self {
-        match value {
-            TriDirection::Left => 0,
-            TriDirection::Right => 1,
-            TriDirection::Base => 2,
-        }
-    }
-}
-
 impl Triangle {
     /// Compute the z coordinate for a vertex coordinate
     ///
@@ -121,6 +100,61 @@ impl Triangle {
         (*self).into()
     }
 
+    /// Rotate about the origin tri(0, 0, 0)
+    ///
+    /// Positive rot_dir means CW, negative is CCW
+    pub fn rotate(&self, rot_dir: i32) -> Self {
+        match rot_dir.rem_euclid(6) {
+            0 => *self,
+            1 => triangle!(1 - self.z, 1 - self.x, 1 - self.y),
+            2 => triangle!(self.y, self.z, self.x),
+            3 => triangle!(1 - self.x, 1 - self.y, 1 - self.z),
+            4 => triangle!(self.z, self.x, self.y),
+            5 => triangle!(1 - self.y, 1 - self.z, 1 - self.x),
+            _ => unreachable!(), // should never reach
+        }
+    }
+
+    /// Rotate a tri about another coordinate
+    ///
+    /// If rot_dir is a multiple of 2 a rotation of a tri face about another tri face
+    /// will produce another tri face. However, a rot_dir that is odd with the same
+    /// coordinates will produce half step gibberish.
+    pub fn rotate_about(&self, about_b: &Self, rot_dir: i32) -> Self {
+        *about_b + (*self - *about_b).rotate(rot_dir)
+    }
+
+    /// Reflect a tri across the cartesian x axis
+    pub fn reflect_x(&self) -> Self {
+        triangle!(self.z, self.y, self.x)
+    }
+
+    /// Reflect a tri across the cartesian y axis
+    pub fn reflect_y(&self) -> Self {
+        triangle!(1 - self.z, 1 - self.y, 1 - self.x)
+    }
+
+    /// Produce the coordinates within a set distance from this coordinate
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    pub fn range(&self, dist: i32) -> Vec<Self> {
+        let mut ret = Vec::with_capacity((dist.pow(2) + 2 * dist + 1) as usize);
+        for dx in -dist..=dist {
+            for dy in (-dist - dx).max(-dist)..=(dist - dx).min(dist) {
+                let dz0 = 1 - (self.x + self.y + self.z + dx + dy);
+
+                if dx.abs() + dy.abs() + dz0.abs() <= dist {
+                    ret.push(*self + triangle!(dx, dy, dz0));
+                }
+
+                let dz1 = dz0 + 1;
+                if dx.abs() + dy.abs() + dz1.abs() <= dist {
+                    ret.push(*self + triangle!(dx, dy, dz1));
+                }
+            }
+        }
+        ret
+    }
+
     /// Generate a neighbor coordinate
     pub fn neighbor(&self, direction: TriDirection) -> Self {
         match (direction, self.orientation()) {
@@ -157,17 +191,128 @@ impl Triangle {
     }
 
     /// Computes L1 distance between coordinates
-    pub fn distance(&self, b: Self) -> i32 {
-        let dx = (self.x - b.x).abs();
-        let dy = (self.y - b.y).abs();
-        let dz = (self.z - b.z).abs();
-        dx + dy + dz
+    pub fn distance(&self, b: &Self) -> i32 {
+        let dt = *self - *b;
+        dt.x.abs() + dt.y.abs() + dt.z.abs()
+    }
+}
+
+impl Add for Triangle {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Triangle {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+            z: self.z + rhs.z,
+        }
+    }
+}
+
+impl Sub for Triangle {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Triangle {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn compute_z_vert() {
+        assert_eq!(triangle!(0, 0, 0).compute_z_vert(), triangle!(0, 0, 0));
+        assert_eq!(triangle!(1, 0, 0).compute_z_vert(), triangle!(1, 0, -1));
+    }
+
+    #[test]
+    fn compute_z() {
+        assert_eq!(
+            triangle!(1, 0, 0).compute_z(TriOrientation::Up),
+            triangle!(1, 0, 1)
+        );
+
+        assert_eq!(
+            triangle!(0, 0, 0).compute_z(TriOrientation::Down),
+            triangle!(0, 0, 1)
+        );
+    }
+
+    #[test]
+    fn rotate() {
+        assert_eq!(triangle!(0, 1, 0).rotate(2), triangle!(1, 0, 0));
+        assert_eq!(triangle!(0, 1, 0).rotate(3), triangle!(1, 0, 1));
+        assert_eq!(triangle!(0, 1, 0).rotate(4), triangle!(0, 0, 1));
+        assert_eq!(triangle!(0, 1, 0).rotate(5), triangle!(0, 1, 1));
+        assert_eq!(triangle!(0, 1, 0).rotate(6), triangle!(0, 1, 0).rotate(0));
+    }
+
+    #[test]
+    fn rotate_about() {
+        assert_eq!(
+            triangle!(1, 1, 0).rotate_about(&triangle!(1, 0, -1), 1),
+            triangle!(1, 1, -1)
+        );
+    }
+
+    #[test]
+    fn reflect_x() {
+        assert_eq!(triangle!(1, 1, 0).reflect_x(), triangle!(0, 1, 1));
+        assert_eq!(triangle!(2, 1, -1).reflect_x(), triangle!(-1, 1, 2));
+        assert_eq!(triangle!(0, 1, 0).reflect_x(), triangle!(0, 1, 0));
+    }
+
+    #[test]
+    fn reflect_y() {
+        assert_eq!(triangle!(1, 1, 0).reflect_y(), triangle!(1, 0, 0));
+        assert_eq!(triangle!(2, 1, -1).reflect_y(), triangle!(2, 0, -1));
+        assert_eq!(triangle!(0, 1, 0).reflect_y(), triangle!(1, 0, 1));
+    }
+
+    #[test]
+    fn range() {
+        assert_eq!(
+            triangle!(0, 1, 0).range(1),
+            vec![
+                triangle!(0, 1, 0),
+                triangle!(0, 1, 1),
+                triangle!(0, 2, 0),
+                triangle!(1, 1, 0),
+            ]
+        );
+
+        assert_eq!(
+            triangle!(0, 0, 2).range(1),
+            vec![
+                triangle!(-1, 0, 2),
+                triangle!(0, -1, 2),
+                triangle!(0, 0, 1),
+                triangle!(0, 0, 2),
+            ]
+        );
+
+        assert_eq!(
+            triangle!(1, 0, 0).range(2),
+            vec![
+                triangle!(0, 0, 1),
+                triangle!(0, 1, 0),
+                triangle!(1, -1, 1),
+                triangle!(1, 0, 0),
+                triangle!(1, 0, 1),
+                triangle!(1, 1, -1),
+                triangle!(1, 1, 0),
+                triangle!(2, -1, 0),
+                triangle!(2, 0, -1),
+                triangle!(2, 0, 0),
+            ]
+        );
+    }
 
     #[test]
     fn are_neighbors() {
