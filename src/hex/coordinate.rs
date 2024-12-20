@@ -467,11 +467,6 @@ impl Axial {
         atan2(-y, -x).to_degrees() + 180.0
     }
 
-    // utilize f64 to preserve lossless conversion for i32
-    fn lerp_internal(a: i32, b: i32, t: f64) -> f64 {
-        a as f64 + (b - a) as f64 * t
-    }
-
     /// Rounds a floating hex coordinate to an integer coordinate.
     ///
     /// This algorithm is based on the round function by Jacob Rus
@@ -542,8 +537,8 @@ impl Axial {
     /// let coord = axial!(0, 0).lerp(axial!(3, 0), 0.3);
     /// ```
     pub fn lerp(&self, b: Self, t: f64) -> Self {
-        let q = Self::lerp_internal(self.q, b.q, t);
-        let r = Self::lerp_internal(self.r, b.r, t);
+        let q = crate::core::misc::lerp(self.q as f64, b.q as f64, t);
+        let r = crate::core::misc::lerp(self.r as f64, b.r as f64, t);
         Self::round((q, r))
     }
 

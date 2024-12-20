@@ -74,19 +74,41 @@ impl Triangle {
         }
     }
 
-    /// Compute the z coordinate for a tri-face coordinate
-    pub fn compute_z(&self, orientation: TriOrientation) -> Self {
+    /// Solve for the third component of a tri-face coordinate.
+    #[inline]
+    pub fn solve_coord(partial: (i32, i32), orientation: TriOrientation) -> i32 {
         match orientation {
-            TriOrientation::Up => Triangle {
-                z: 2 - self.x - self.y,
-                ..*self
-            },
-            TriOrientation::Down => Triangle {
-                z: 1 - self.x - self.y,
-                ..*self
-            },
+            TriOrientation::Up => 2 - partial.0 - partial.1,
+            TriOrientation::Down => 1 - partial.0 - partial.1,
         }
     }
+
+    /// Compute the z coordinate for a tri-face coordinate
+    pub fn compute_z(&self, orientation: TriOrientation) -> Self {
+        Triangle {
+            z: Self::solve_coord((self.x, self.y), orientation),
+            ..*self
+        }
+    }
+
+    /// Converts a tri coordinate to cartesian coordinates.
+    pub fn to_cartesian(&self) -> (f64, f64) {
+        (
+            (0.5 * self.x as f64 + -0.5 * self.z as f64),
+            (-SQRT_3 / 6.0 * self.x as f64 + SQRT_3 / 3.0 * self.y as f64
+                - SQRT_3 / 6.0 * self.z as f64),
+        )
+    }
+
+    /// Converts from cartesian coordinates to the nearest tri face coordinate.
+    pub fn nearest_tri_face(cartesian: (f64, f64)) -> Self {
+        triangle!(
+            (1.0 * cartesian.0 - SQRT_3 / 3.0 * cartesian.1).ceil() as i32,
+            (SQRT_3 * 2.0 / 3.0 * cartesian.1).floor() as i32 + 1,
+            (-1.0 * cartesian.0 - SQRT_3 / 3.0 * cartesian.1).ceil() as i32
+        )
+    }
+
     /// Determines if the coordinate is a face.
     ///
     /// Since the coordinates can map to faces or vertices it can be
@@ -132,6 +154,99 @@ impl Triangle {
     /// Reflect a tri across the cartesian y axis
     pub fn reflect_y(&self) -> Self {
         triangle!(1 - self.z, 1 - self.y, 1 - self.x)
+    }
+
+    /// Linear interpolation between two tri faces
+    pub fn lerp(&self, b: &Self, t: f64) -> Self {
+        // Until a method to do it can be found for native tri coords,
+        // we'll just convert to cartesian and interpolate there.
+
+        let (self_x, self_y) = self.to_cartesian();
+        let (b_x, b_y) = b.to_cartesian();
+
+        let x = crate::core::misc::lerp(self_x, b_x, t);
+        let y = crate::core::misc::lerp(self_y, b_y, t);
+
+        Self::nearest_tri_face((x, y))
+    }
+
+    /// Produces a line from self to b
+    ///
+    /// The elements of the array are in order of grid traversal, the length of the array
+    /// will also equal the distance of self -> b + 1.
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    pub fn line(&self, b: &Self) -> Vec<Self> {
+        // Non-Inclusive
+        let basic_line = |a: Triangle, b: Triangle, dist| {
+            (0..dist).map(move |d| a.lerp(&b, d as f64 / dist as f64))
+        };
+
+        // If the coordinates share an axis, we can just return a basic lerped line
+        if self.x == b.x || self.y == b.y || self.z == b.z {
+            return basic_line(*self, *b, self.distance(b) + 1).collect();
+        }
+
+        // Otherwise, for a smooth line that follows standard tri movements
+        // we have to do a different method
+        let slope = (self.x - b.x) / (self.y - b.y);
+        let (intersected, offsets) = match slope.is_negative() {
+            // Negative slope
+            true => {
+                let (y, z) = match self.x < b.x {
+                    true => (b.y, self.z),
+                    false => (self.y, b.z),
+                };
+
+                (
+                    [
+                        triangle!(Self::solve_coord((y, z), TriOrientation::Up), y, z),
+                        triangle!(Self::solve_coord((y, z), TriOrientation::Down), y, z),
+                    ],
+                    [triangle!(1, -1, 1), triangle!(1, -1, -1)],
+                )
+            }
+            // Positive slope
+            false => {
+                let (x, y) = match self.x < b.x {
+                    true => (b.x, self.y),
+                    false => (self.x, b.y),
+                };
+
+                (
+                    [
+                        triangle!(x, y, Self::solve_coord((x, y), TriOrientation::Up)),
+                        triangle!(x, y, Self::solve_coord((x, y), TriOrientation::Down)),
+                    ],
+                    [triangle!(-1, 1, -1), triangle!(-1, 1, 1)],
+                )
+            }
+        };
+
+        let ds0 = self.distance(&intersected[0]);
+        let ds1 = self.distance(&intersected[1]);
+
+        let db0 = b.distance(&intersected[0]);
+        let db1 = b.distance(&intersected[1]);
+
+        if ds0 < ds1 {
+            // self -> 1 && b -> 0
+            basic_line(*self, intersected[0], ds0)
+                .chain(
+                    intersected
+                        .iter()
+                        .enumerate()
+                        .map(|(i, v)| *v + offsets[i])
+                        .rev(),
+                )
+                .chain(basic_line(*b, intersected[1], db1).rev())
+                .collect()
+        } else {
+            // b -> 0 && self -> 1
+            basic_line(*self, intersected[1], ds1)
+                .chain(intersected.iter().enumerate().map(|(i, v)| *v + offsets[i]))
+                .chain(basic_line(*b, intersected[0], db0).rev())
+                .collect()
+        }
     }
 
     /// Produce the coordinates within a set distance from this coordinate
@@ -223,6 +338,8 @@ impl Sub for Triangle {
 
 #[cfg(test)]
 mod tests {
+    use assert_float_eq::*;
+
     use super::*;
 
     #[test]
@@ -242,6 +359,53 @@ mod tests {
             triangle!(0, 0, 0).compute_z(TriOrientation::Down),
             triangle!(0, 0, 1)
         );
+    }
+
+    #[test]
+    fn to_cartesian() {
+        // Interoperability
+        assert_eq!(
+            Triangle::nearest_tri_face(triangle!(0, 1, 0).to_cartesian()),
+            triangle!(0, 1, 0)
+        );
+
+        assert_eq!(
+            Triangle::nearest_tri_face(triangle!(0, 2, -1).to_cartesian()),
+            triangle!(0, 2, -1)
+        );
+
+        assert_eq!(
+            Triangle::nearest_tri_face(triangle!(-1, 1, 2).to_cartesian()),
+            triangle!(-1, 1, 2)
+        );
+
+        // Accuracy
+        macro_rules! tupexpand {
+            ($lhs:expr, $tup:expr) => {
+                let lhs = $lhs;
+                assert_f64_near!(lhs.0, $tup.0);
+                assert_f64_near!(lhs.1, $tup.1);
+            };
+        }
+        tupexpand!(triangle!(0, 1, 0).to_cartesian(), (0.0, 0.5773502691896262));
+        tupexpand!(
+            triangle!(0, 2, -1).to_cartesian(),
+            (0.5, 1.4433756729740643)
+        );
+        tupexpand!(
+            triangle!(0, 0, 2).to_cartesian(),
+            (-1.0, -0.5773502691896257)
+        );
+    }
+
+    #[test]
+    fn nearest_tri_face() {
+        assert_eq!(Triangle::nearest_tri_face((0.0, 0.0)), triangle!(0, 1, 0));
+        assert_eq!(
+            Triangle::nearest_tri_face((-1.0, -1.0)),
+            triangle!(0, -1, 2)
+        );
+        assert_eq!(Triangle::nearest_tri_face((1.0, -1.0)), triangle!(2, -1, 0));
     }
 
     #[test]
@@ -273,6 +437,37 @@ mod tests {
         assert_eq!(triangle!(1, 1, 0).reflect_y(), triangle!(1, 0, 0));
         assert_eq!(triangle!(2, 1, -1).reflect_y(), triangle!(2, 0, -1));
         assert_eq!(triangle!(0, 1, 0).reflect_y(), triangle!(1, 0, 1));
+    }
+
+    #[test]
+    fn lerp() {
+        assert_eq!(
+            triangle!(-1, 1, 1).lerp(&triangle!(1, 1, 0), 0.51),
+            triangle!(0, 1, 0)
+        );
+
+        assert_eq!(
+            triangle!(-1, 1, 1).lerp(&triangle!(1, 1, 0), 1.0),
+            triangle!(1, 1, 0)
+        );
+
+        assert_eq!(
+            triangle!(-1, 1, 1).lerp(&triangle!(2, 0, -1), 0.63),
+            triangle!(1, 1, 0)
+        );
+
+        assert_eq!(
+            triangle!(-1, 1, 1).lerp(&triangle!(2, 0, -1), 0.3),
+            triangle!(0, 1, 1)
+        );
+    }
+
+    #[test]
+    fn line() {
+        let tria = triangle!(-1, 0, 2);
+        let trib = triangle!(2, 1, -1);
+
+        todo!()
     }
 
     #[test]
