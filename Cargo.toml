@@ -16,6 +16,7 @@ serde = {version = "1.0", default-features = false, features = ["derive"], optio
 libm = {version = "0.2.11", default-features = false}
 
 [dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
 assert_float_eq = "1"
 rand = "0.8.5"
 
@@ -24,6 +25,14 @@ default = ["std"]
 serde = ["dep:serde", "ndarray/serde"]
 std = ["serde?/std", "ndarray/std"]
 alloc = ["serde?/alloc"]
+
+[profile.release-debug]
+inherits = "release"
+debug = true
+
+[[bench]]
+name = "triangle_benchmark"
+harness = false
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)'] }
