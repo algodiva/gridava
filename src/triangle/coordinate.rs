@@ -157,6 +157,59 @@ impl Triangle {
         triangle!(1 - self.z, 1 - self.y, 1 - self.x)
     }
 
+    /// Projects a coordinate onto the line along the x axis at x
+    pub fn projection_x(self, x: i32) -> Self {
+        if self.x == x {
+            // We are already on the axis
+            self
+        } else {
+            let dx = self.x - x;
+            let sign = dx.is_negative();
+            let ori = self.orientation() == TriOrientation::Up;
+            let offset = (sign == ori) as i32;
+
+            const PROJECTION_LUT: [Triangle; 2] = [triangle!(0, 1, 1), triangle!(0, -1, -1)];
+            triangle!(x, self.y, self.z)
+                + (PROJECTION_LUT[sign as usize] * ((dx.abs() + offset) / 2))
+        }
+    }
+
+    /// Projects a coordinate onto the line along the y axis at y
+    pub fn projection_y(self, y: i32) -> Self {
+        if self.y == y {
+            // We are already on the axis
+            self
+        } else {
+            let dy = self.y - y;
+            let sign = dy.is_negative();
+            let ori = self.orientation() == TriOrientation::Up;
+            let offset = (sign == ori) as i32;
+
+            // The two coordinates are more than 1 lane apart
+            const PROJECTION_LUT: [Triangle; 2] = [triangle!(1, 0, 1), triangle!(-1, 0, -1)];
+            triangle!(self.x, y, self.z)
+                + (PROJECTION_LUT[sign as usize] * ((dy.abs() + offset) / 2))
+        }
+    }
+
+    /// Projects a coordinate onto the line along the z axis at z
+    pub fn projection_z(self, z: i32) -> Self {
+        if self.z == z {
+            // We are already on the axis
+            self
+        } else {
+            let dz = self.z - z;
+            let sign = dz.is_negative();
+            let ori = self.orientation() == TriOrientation::Up;
+            let offset = (sign == ori) as i32;
+
+            // The two coordinates are more than 1 lane apart
+            const PROJECTION_LUT: [Triangle; 2] = [triangle!(1, 1, 0), triangle!(-1, -1, 0)];
+            triangle!(self.x, self.y, z)
+                + (PROJECTION_LUT[sign as usize] * ((dz.abs() + offset) / 2))
+        }
+    }
+
     /// Linear interpolation between two tri faces
     pub fn lerp(self, b: Self, t: f64) -> Self {
         // Until a method to do it can be found for native tri coords,
@@ -422,6 +475,18 @@ impl Sub for Triangle {
     }
 }
 
+impl Mul<i32> for Triangle {
+    type Output = Self;
+
+    fn mul(self, rhs: i32) -> Self::Output {
+        Triangle {
+            x: self.x * rhs,
+            y: self.y * rhs,
+            z: self.z * rhs,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use assert_float_eq::*;
@@ -523,6 +588,68 @@ mod tests {
         assert_eq!(triangle!(1, 1, 0).reflect_y(), triangle!(1, 0, 0));
         assert_eq!(triangle!(2, 1, -1).reflect_y(), triangle!(2, 0, -1));
         assert_eq!(triangle!(0, 1, 0).reflect_y(), triangle!(1, 0, 1));
+    }
+
+    #[test]
+    fn projection_x() {
+        macro_rules! test {
+            ($coord:expr, $axis:expr, $testcase:expr) => {
+                let projected = $coord.projection_x($axis);
+                // Ensure function works
+                assert_eq!(projected, $testcase, "Test case failed");
+                // Ensure inverse works
+                assert_eq!($coord, projected.projection_x($coord.x), "Inverse failed");
+            };
+        }
+
+        test!(triangle!(0, 1, 1), 0, triangle!(0, 1, 1));
+        test!(triangle!(1, 0, 0), 0, triangle!(0, 1, 1));
+        test!(triangle!(2, 0, 0), 0, triangle!(0, 1, 1));
+        test!(triangle!(2, 1, -1), 0, triangle!(0, 2, 0));
+        test!(triangle!(3, 0, -1), 0, triangle!(0, 1, 0));
+        test!(triangle!(1, 0, 0), 2, triangle!(2, 0, 0));
+        test!(triangle!(-1, 1, 2), 2, triangle!(2, -1, 0));
+        test!(triangle!(3, -1, -1), -1, triangle!(-1, 1, 1));
+    }
+
+    #[test]
+    fn projection_y() {
+        macro_rules! test {
+            ($coord:expr, $axis:expr, $testcase:expr) => {
+                let projected = $coord.projection_y($axis);
+                // Ensure function works
+                assert_eq!(projected, $testcase, "Test case failed");
+                // Ensure inverse works
+                assert_eq!($coord, projected.projection_y($coord.y), "Inverse failed");
+            };
+        }
+
+        test!(triangle!(0, 1, 0), 1, triangle!(0, 1, 0));
+        test!(triangle!(0, 2, 0), 0, triangle!(1, 0, 1));
+        test!(triangle!(1, 2, -1), -1, triangle!(2, -1, 0));
+        test!(triangle!(1, 0, 1), -1, triangle!(1, -1, 1));
+        test!(triangle!(0, 3, -1), -1, triangle!(2, -1, 1));
+        test!(triangle!(-1, 3, -1), -2, triangle!(2, -2, 2));
+    }
+
+    #[test]
+    fn projection_z() {
+        macro_rules! test {
+            ($coord:expr, $axis:expr, $testcase:expr) => {
+                let projected = $coord.projection_z($axis);
+                // Ensure function works
+                assert_eq!(projected, $testcase, "Test case failed");
+                // Ensure inverse works
+                assert_eq!($coord, projected.projection_z($coord.z), "Inverse failed");
+            };
+        }
+
+        test!(triangle!(0, 1, 1), 1, triangle!(0, 1, 1));
+        test!(triangle!(0, 1, 1), 0, triangle!(0, 1, 0));
+        test!(triangle!(-1, 0, 2), 0, triangle!(0, 1, 0));
+        test!(triangle!(0, 1, 1), -1, triangle!(1, 2, -1));
+        test!(triangle!(-1, 0, 2), -1, triangle!(1, 2, -1));
+        test!(triangle!(2, 1, -1), 3, triangle!(0, -1, 3));
     }
 
     #[test]
