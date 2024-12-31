@@ -2,6 +2,7 @@
 
 use crate::lib::*;
 
+#[derive(Debug)]
 pub enum Axes3D {
     X,
     Y,

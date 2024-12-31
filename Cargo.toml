@@ -11,9 +11,10 @@ categories = ["data-structures", "game-development"]
 exclude = ["/.gitignore", "/TODO", "/.gitattributes", "/.github"]
 
 [dependencies]
-ndarray = {version = "0.16.1", default-features = false}
-serde = {version = "1.0", default-features = false, features = ["derive"], optional = true}
-libm = {version = "0.2.11", default-features = false}
+ndarray = { version = "0.16.1", default-features = false }
+serde = { version = "1.0", default-features = false, features = ["derive"], optional = true }
+libm = { version = "0.2.11", default-features = false }
+either = { version = "1.13.0" }
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }

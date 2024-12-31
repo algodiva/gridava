@@ -271,7 +271,7 @@ impl Vertex {
     /// let dist = verta.distance(vertb);
     /// ```
     #[inline]
-    pub fn distance(self, b: Self) -> i32 {
+    pub fn distance(self, b: Self) -> u32 {
         self.coord.distance(b.coord)
     }
 }

@@ -2,6 +2,7 @@
 
 use crate::core::misc::Axes3D;
 use crate::lib::*;
+use either::{Either, Left, Right};
 
 /// A coordinate for a triangular grid.
 ///
@@ -224,11 +225,7 @@ impl Triangle {
         Self::nearest_tri_face((x, y))
     }
 
-    fn lerp_line(self, b: Self, dist: i32) -> impl DoubleEndedIterator<Item = Self> {
-        (0..dist).map(move |d| self.lerp(b, d as f64 / dist as f64))
-    }
-
-    fn intersection(self, b: Self) -> ([Triangle; 2], [Triangle; 2]) {
+    pub fn intersection(self, b: Self) -> ([Triangle; 2], [Triangle; 2]) {
         let slope = (self.x - b.x) / (self.y - b.y);
 
         match slope.is_negative() || slope == 0 {
@@ -241,10 +238,10 @@ impl Triangle {
 
                 (
                     [
-                        triangle!(x, Self::solve_coord((x, z), TriOrientation::Up), z),
                         triangle!(x, Self::solve_coord((x, z), TriOrientation::Down), z),
+                        triangle!(x, Self::solve_coord((x, z), TriOrientation::Up), z),
                     ],
-                    [triangle!(-1, -1, 1), triangle!(-1, 1, 1)],
+                    [triangle!(-1, 1, 1), triangle!(-1, -1, 1)],
                 )
             }
             // Positive slope
@@ -265,48 +262,85 @@ impl Triangle {
         }
     }
 
-    #[cfg(any(feature = "std", feature = "alloc"))]
-    fn subline(self, b: Self) -> Vec<Self> {
-        // This could be changed to an array when VLAs get implemented into stable Rust
-        let (intersected, offsets) = self.intersection(b);
-
-        let ds0 = self.distance(intersected[0]);
-        let ds1 = self.distance(intersected[1]);
-
-        if ds0 < ds1 {
-            let db1 = b.distance(intersected[1]);
-
-            // self -> (1, 0) -> b
-            self.lerp_line(intersected[0], ds0)
-                .chain(
-                    intersected
-                        .iter()
-                        .enumerate()
-                        .map(|(i, v)| *v + offsets[i])
-                        // Because of the offsets reflecting the coordinates across its vertex, we have to reverse the order.
-                        .rev(),
-                )
-                .chain(b.lerp_line(intersected[1], db1))
-                .collect()
+    fn shared_axis(self, b: Self) -> Option<Axes3D> {
+        if self.x == b.x {
+            Some(Axes3D::X)
+        } else if self.y == b.y {
+            Some(Axes3D::Y)
+        } else if self.z == b.z {
+            Some(Axes3D::Z)
         } else {
-            let db0 = b.distance(intersected[0]);
-
-            // self -> (0, 1) -> b
-            self.lerp_line(intersected[1], ds1)
-                .chain(intersected.iter().enumerate().map(|(i, v)| *v + offsets[i]))
-                .chain(b.lerp_line(intersected[0], db0).rev())
-                .collect()
+            None
         }
     }
 
     #[cfg(any(feature = "std", feature = "alloc"))]
-    pub fn smooth_line(self, b: Self, step_size: i32) -> Vec<Self> {
+    fn sub_line(
+        self,
+        b: Self,
+    ) -> Either<impl DoubleEndedIterator<Item = Self>, impl DoubleEndedIterator<Item = Self>> {
+        // This could be changed to an array when VLAs get implemented into stable Rust
+        let (intersected, offsets) = self.intersection(b);
+        let ds0 = self.distance(intersected[0]);
+        let ds1 = self.distance(intersected[1]);
+
+        if ds0 < ds1 {
+            Left(
+                self.line_along_axis(
+                    intersected[0],
+                    self.shared_axis(intersected[0]).unwrap(),
+                    false,
+                )
+                .chain(
+                    intersected
+                        .into_iter()
+                        .enumerate()
+                        .map(move |(i, v)| v + offsets[i])
+                        .rev(),
+                )
+                .chain(
+                    b.line_along_axis(
+                        intersected[1],
+                        b.shared_axis(intersected[1]).unwrap(),
+                        false,
+                    )
+                    .rev(),
+                ),
+            )
+        } else {
+            Right(
+                self.line_along_axis(
+                    intersected[1],
+                    self.shared_axis(intersected[1]).unwrap(),
+                    false,
+                )
+                .chain(
+                    intersected
+                        .into_iter()
+                        .enumerate()
+                        .map(move |(i, v)| v + offsets[i]),
+                )
+                .chain(
+                    b.line_along_axis(
+                        intersected[0],
+                        b.shared_axis(intersected[0]).unwrap(),
+                        false,
+                    )
+                    .rev(),
+                ),
+            )
+        }
+    }
+
+    // Step size should be a power of 2, then we can bit shift divide
+    #[cfg(any(feature = "std", feature = "alloc"))]
+    pub fn smooth_line(self, b: Self, step_size: u32) -> Vec<Self> {
         // Slice up line into small lines based on step size
         let dist = self.distance(b);
         let num_subdivisions = dist / step_size;
 
         let mut endpoints = (0..num_subdivisions)
-            .map(|i| self.lerp(b, step_size as f64 + (step_size * i) as f64))
+            .map(|i| self.lerp(b, (step_size as f64 + (step_size * i) as f64) / dist as f64))
             .collect::<Vec<_>>();
 
         // Since the dist could be a number not evenly divisible by STEP_SIZE we need to check if we need to append b.
@@ -320,16 +354,25 @@ impl Triangle {
             .map(|i| {
                 let (a, b) = (start, endpoints[i]);
                 start = endpoints[i];
-                a.subline(b)
+                if let Some(axis) = a.shared_axis(b) {
+                    Left(a.line_along_axis(b, axis, true))
+                } else {
+                    Right(a.sub_line(b))
+                }
             })
-            .collect::<Vec<_>>()
-            .concat()
+            .flatten()
+            .collect()
     }
 
     #[cfg(any(feature = "std", feature = "alloc"))]
-    fn line_along_axis(self, b: Self, axis: Axes3D) -> Vec<Self> {
-        let dist = self.distance(b);
-        let range = 0..dist;
+    pub fn line_along_axis(
+        self,
+        b: Self,
+        axis: Axes3D,
+        inclusive: bool,
+    ) -> impl DoubleEndedIterator<Item = Self> {
+        let dist = self.distance(b) as u32;
+        let range = 0..dist - (!inclusive) as u32;
         let is_start_down = match self.orientation() {
             TriOrientation::Up => false,
             TriOrientation::Down => true,
@@ -358,15 +401,22 @@ impl Triangle {
                 }
             }
         };
-        let mut start = self;
-        [self]
-            .into_iter()
-            .chain(range.map(|i| {
-                let ret = start + step[(is_start_down ^ ((i & 1) != 0)) as usize];
-                start = ret;
-                ret
-            }))
-            .collect()
+        [self].into_iter().chain(range.map(move |i| {
+            let dbl_step = step[0] + step[1];
+            if i & 1 == 1 {
+                // Is odd
+                dbl_step * ((i + 1) >> 1) as i32 + self
+            } else {
+                dbl_step * (i >> 1) as i32 + self + step[(is_start_down ^ ((i & 1) != 0)) as usize]
+            }
+        }))
+        // [self]
+        //     .into_iter()
+        //     .chain(range.scan(self, move |start, i| {
+        //         let ret = *start + step[(is_start_down ^ ((i & 1) != 0)) as usize];
+        //         *start = ret;
+        //         Some(ret)
+        //     }))
     }
 
     /// Produces a line from self to b
@@ -378,11 +428,11 @@ impl Triangle {
         if self == b {
             vec![self]
         } else if self.x == b.x {
-            self.line_along_axis(b, Axes3D::X)
+            self.line_along_axis(b, Axes3D::X, true).collect()
         } else if self.y == b.y {
-            self.line_along_axis(b, Axes3D::Y)
+            self.line_along_axis(b, Axes3D::Y, true).collect()
         } else if self.z == b.z {
-            self.line_along_axis(b, Axes3D::Z)
+            self.line_along_axis(b, Axes3D::Z, true).collect()
         } else {
             self.smooth_line(b, 8)
         }
@@ -445,9 +495,9 @@ impl Triangle {
     }
 
     /// Computes L1 distance between coordinates
-    pub fn distance(self, b: Self) -> i32 {
+    pub fn distance(self, b: Self) -> u32 {
         let dt = self - b;
-        dt.x.abs() + dt.y.abs() + dt.z.abs()
+        dt.x.unsigned_abs() + dt.y.unsigned_abs() + dt.z.unsigned_abs()
     }
 }
 
@@ -685,14 +735,14 @@ mod tests {
             ($tria:expr, $trib:expr, $testarr:expr) => {
                 let dist = $tria.distance($trib);
                 let coords = $tria.line($trib);
+                assert_eq!(coords, $testarr, "Line array does not match test array");
                 assert_eq!(
                     dist + 1,
-                    coords.len() as i32,
+                    coords.len() as u32,
                     "Distance {} does not match array length {}",
                     dist + 1,
                     coords.len()
                 );
-                assert_eq!(coords, $testarr, "Line array does not match test array");
                 let mut reversed = $trib.line($tria);
                 reversed.reverse();
                 assert_eq!(coords, reversed, "a.line(b) != b.line(a).reverse()");
@@ -725,6 +775,22 @@ mod tests {
                 Triangle { x: 0, y: 1, z: 1 },
                 Triangle { x: -1, y: 1, z: 1 },
                 Triangle { x: -1, y: 2, z: 1 }
+            ]
+        );
+
+        test!(
+            triangle!(-1, 0, 3),
+            triangle!(2, 1, -1),
+            vec![
+                Triangle { x: -1, y: 0, z: 3 },
+                Triangle { x: -1, y: 0, z: 2 },
+                Triangle { x: 0, y: 0, z: 2 },
+                Triangle { x: 0, y: 0, z: 1 },
+                Triangle { x: 1, y: 0, z: 1 },
+                Triangle { x: 1, y: 0, z: 0 },
+                Triangle { x: 1, y: 1, z: 0 },
+                Triangle { x: 1, y: 1, z: -1 },
+                Triangle { x: 2, y: 1, z: -1 }
             ]
         );
 
