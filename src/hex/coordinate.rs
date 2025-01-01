@@ -609,7 +609,7 @@ impl Axial {
     /// let reflected = axial!(0, 0).reflect(Some(axial!(0, 1)), Axes::Q);
     /// ```
     pub fn reflect(&self, center: Option<Self>, axes: Axes) -> Self {
-        let center = center.unwrap_or_else(|| axial!(0, 0));
+        let center = center.unwrap_or(axial!(0, 0));
 
         let centered_coord = *self - center;
 
@@ -649,7 +649,7 @@ impl Axial {
     /// let coord = axial!(1, 0).rotate(Some(axial!(2, 0)), 1);
     /// ```
     pub fn rotate(&self, center: Option<Self>, rot_dir: i32) -> Self {
-        let center = center.unwrap_or_else(|| axial!(0, 0));
+        let center = center.unwrap_or(axial!(0, 0));
 
         let centered_coord = *self - center;
 
