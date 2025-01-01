@@ -29,4 +29,6 @@ Cargo.lock
 
 # Coverage files
 coverage.xml
-lcov.info
+
+# Profiling
+/examples/dev

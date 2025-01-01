@@ -1,4 +1,4 @@
-//! Miscelanious algorithms for grids.
+//! Miscellaneous algorithms for grids.
 
 use crate::lib::*;
 
@@ -19,12 +19,15 @@ impl Display for FFError {
     }
 }
 
-/// Flood fill aglorithm, fills a bounded area.
+/// Flood fill algorithm, fills a bounded area.
 ///
-/// The `seed` parameter **must** be a valid index of `in_arr` else an [`FFError::InvalidSeed`] error will be returned.
+/// The `seed` parameter **must** be a valid index of `in_arr` else
+/// an [`FFError::InvalidSeed`] error will be returned.
 ///
-/// The `pred` functor takes in two references, this is in the order `Fn(&element, &target) -> bool`: Element is the
-/// actual value at the index being compared, and target is the value selected by the seed. The functor should return
+/// The `pred` functor takes in two references, this is in the order
+/// `Fn(&element, &target) -> bool`: Element is the actual value at the index being compared,
+/// and target is the value selected by the seed.
+/// The functor should return
 /// true if the coordinate should be filled, false if not.
 ///
 /// # Example
@@ -38,12 +41,15 @@ impl Display for FFError {
 ///     [0, 1, 0]];
 ///
 /// // Seed points to index 0,0 of the array so e2 will always be 0 in the predicate.
-/// flood_fill(&mut arr, (0, 0), 3, |e1: &i32, e2: &i32| { e1 == e2 });
-///
-/// assert_eq!(arr, array![
-///     [3, 1, 0],
-///     [3, 1, 0],
-///     [3, 1, 0]]);
+/// if let Ok(_) = flood_fill(&mut arr, (0, 0), 3, |e1: &i32, e2: &i32| { e1 == e2 }) {
+///     assert_eq!(arr, array![
+///         [3, 1, 0],
+///         [3, 1, 0],
+///         [3, 1, 0]]);
+/// } else {
+///     // Should never reach
+///     assert!(false);          
+/// }
 /// ```
 /// Uses the Span-filling algorithm
 #[cfg(any(feature = "std", feature = "alloc"))]
@@ -67,7 +73,7 @@ where
     // Target value to fill
     let target = &in_arr[[seed_x as usize, seed_y as usize]].clone();
 
-    // Inside function, does a bounds check and asks the predicate whether or not to fill
+    // Inside function, does a bounds check and asks the predicate whether to fill
     let mut inside = |x, y, arr: &Array2<T>| {
         if let Some(ele) = arr.get((x as usize, y as usize)) {
             pred(ele, target)
@@ -122,14 +128,19 @@ where
 
 #[cfg(all(test, any(feature = "std", feature = "alloc")))]
 mod tests {
-    use alloc::format;
-
     use super::*;
 
     #[test]
     fn fmt() {
+        #[cfg(not(feature = "std"))]
+        use alloc::format;
+        #[cfg(feature = "std")]
+        use std::format;
         let err = FFError::InvalidSeed;
-        assert!(format!("{err}") == "provided seed is out of bounds of the provided array")
+        assert_eq!(
+            format!("{err}"),
+            "provided seed is out of bounds of the provided array"
+        )
     }
 
     #[test]

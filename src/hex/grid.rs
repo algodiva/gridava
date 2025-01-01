@@ -2,12 +2,7 @@
 
 use crate::lib::*;
 
-use super::coordinate::Axial;
-
-use crate::axial;
-
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+use super::coordinate::{axial, Axial};
 
 /// Enum denoting orientation of hexagons in a grid.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -31,7 +26,7 @@ pub struct WSConverter {
 }
 
 impl WSConverter {
-    /// Convert from worldspace to hex coordinates.
+    /// Convert from world space to hex coordinates.
     ///
     /// Takes in a float 64 tuple of the form (x, y) and outputs the coordinates of the nearest tile.
     ///
@@ -45,15 +40,16 @@ impl WSConverter {
     /// let nearest_tile = converter.world_to_hex(my_object_pos);
     /// ```
     ///
-    /// The parent world space can be anything not just a 'game world.' For instance, the screen width and height could be your worldspace.
+    /// The parent world space can be anything not just a 'game world.' For instance, the screen
+    /// width and height could be your world space.
     /// The grid could even exist in a 3d space and your world's x and y component used.
-    pub fn world_to_hex(&self, worldspace: (f64, f64)) -> Axial {
+    pub fn world_to_hex(&self, ws_coord: (f64, f64)) -> Axial {
         use crate::axial;
 
         match self.orientation {
             HexOrientation::PointyTop => {
-                let x = worldspace.0 / (SQRT_3 * self.size as f64);
-                let y = -worldspace.1 / (SQRT_3 * self.size as f64);
+                let x = ws_coord.0 / (SQRT_3 * self.size as f64);
+                let y = -ws_coord.1 / (SQRT_3 * self.size as f64);
                 let t = SQRT_3 * y + 1.0;
                 let temp1 = f64::floor(t + x);
                 let temp2 = t - x;
@@ -63,8 +59,8 @@ impl WSConverter {
                 axial!(f64::floor(qf) as i32, -f64::floor(rf) as i32)
             }
             HexOrientation::FlatTop => {
-                let y = worldspace.0 / (SQRT_3 * self.size as f64);
-                let x = -worldspace.1 / (SQRT_3 * self.size as f64);
+                let y = ws_coord.0 / (SQRT_3 * self.size as f64);
+                let x = -ws_coord.1 / (SQRT_3 * self.size as f64);
                 let t = SQRT_3 * y + 1.0;
                 let temp1 = f64::floor(t + x);
                 let temp2 = t - x;
@@ -76,9 +72,9 @@ impl WSConverter {
         }
     }
 
-    /// Convert from hex to worldspace coordinates.
+    /// Convert from hex to world space coordinates.
     ///
-    /// Takes in a hex coordinate and outputs the worldspace coordinates of the tile's center.
+    /// Takes in a hex coordinate and outputs the world space coordinates of the tile's center.
     ///
     /// # Example
     /// ```
@@ -90,7 +86,8 @@ impl WSConverter {
     /// let nearest_tile = converter.hex_to_world(axial!(12, 33));
     /// ```
     ///
-    /// The parent world space can be anything not just a 'game world.' For instance, the screen width and height could be your worldspace.
+    /// The parent world space can be anything not just a 'game world.' For instance, the screen
+    /// width and height could be your world space.
     /// The grid could even exist in a 3d space and your world's x and y component used.
     pub fn hex_to_world(&self, coord: Axial) -> (f64, f64) {
         match self.orientation {

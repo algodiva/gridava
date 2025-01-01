@@ -32,6 +32,10 @@ mod lib {
     #[cfg(feature = "std")]
     pub use std::{vec, vec::Vec};
 
+    // Use serde if enabled.
+    #[cfg(feature = "serde")]
+    pub use serde::{Deserialize, Serialize};
+
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub use ndarray::{array, Array, Array2};
 
@@ -41,3 +45,4 @@ mod lib {
 }
 pub mod core;
 pub mod hex;
+pub mod triangle;

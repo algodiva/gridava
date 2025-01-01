@@ -13,9 +13,6 @@ use crate::{
 
 use super::coordinate::Axial;
 
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
-
 /// A shape is a collection of coordinates.
 ///
 /// Each coordinate is a vector that 'points' to the origin coordinate creating a shape local space.
@@ -43,10 +40,7 @@ impl<T: Clone> HexShape<T> {
     /// ```
     pub fn new(shape: Option<Array2<Option<T>>>, transform: Option<Transform<Axial>>) -> Self {
         Self {
-            shape: match shape {
-                Some(arr) => arr,
-                None => array![[], []],
-            },
+            shape: shape.unwrap_or_else(|| array![[], []]),
             transform: transform.unwrap_or_default(),
         }
     }
@@ -61,9 +55,9 @@ impl<T: Clone> HexShape<T> {
     /// use gridava::hex::coordinate::{Axial, axial};
     /// use gridava::hex::shape::HexShape;
     ///
-    /// /// shape_verts stores a triangle of size 1
-    /// let shape_verts = vec![axial!(0, 0), axial!(0, 1), axial!(1, 0)];
-    /// let my_shape = HexShape::make_shape(&shape_verts, true, |_| Tile::new(Some(1)));
+    /// /// shape_vertices stores a triangle of size 1
+    /// let shape_vertices = vec![axial!(0, 0), axial!(0, 1), axial!(1, 0)];
+    /// let my_shape = HexShape::make_shape(&shape_vertices, true, |_| Tile::new(Some(1)));
     /// ```
     ///
     /// The algorithm *WILL* calculate its inequalities on EVERY point in the array. So, in example, if you have a point
@@ -315,7 +309,8 @@ impl<T: Clone> HexShape<T> {
     /// my_shape.scale(vector2d!(2.0, 2.0));
     /// ```
     pub fn scale(mut self, scale: Vector2D<f32>) -> Self {
-        // Uses bilinear interpolation algorithm, it's lossless  meaning if you apply a scale and then its inverse
+        // Uses bi-linear interpolation algorithm, it's lossless  meaning if you apply a scale
+        // and then its inverse
         //  it will return to its original shape.
 
         let shape = self.shape.shape();
@@ -363,7 +358,7 @@ impl<T: Clone> HexShape<T> {
     ///
     /// Transforms the coordinates according to the transform. before setting the data into the collection
     ///
-    /// See the colony game example for a usecase.
+    /// See the colony game example for a use case.
     pub fn apply_shape<COL: Collection<Axial, T>>(&self, col: &mut COL) {
         self.shape.indexed_iter().for_each(|ele| {
             if let Some(value) = ele.1.as_ref() {
@@ -609,7 +604,10 @@ mod tests {
             .get_hexes()
             .indexed_iter()
         {
-            assert!(col.tiles.get(&axial!(coord.0 as i32, coord.1 as i32)) == data.as_ref())
+            assert_eq!(
+                col.tiles.get(&axial!(coord.0 as i32, coord.1 as i32)),
+                data.as_ref()
+            )
         }
     }
 

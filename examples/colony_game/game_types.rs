@@ -66,7 +66,7 @@ pub struct GameEdge {
 pub struct GameBoard {
     pub tiles: HashMap<Axial, GameTile>,
     pub edges: HashMap<Edge, GameEdge>,
-    pub verts: HashMap<Vertex, GameVert>,
+    pub vertices: HashMap<Vertex, GameVert>,
     pub robber_tile: Axial,
 }
 
