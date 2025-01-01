@@ -303,7 +303,6 @@ impl Triangle {
 
     // Produces an iterator forming a line between self and b that is as close to the cartesian
     // line as possible, in other words, smooth.
-    #[cfg(any(feature = "std", feature = "alloc"))]
     fn sub_line(
         self,
         b: Self,
@@ -397,7 +396,6 @@ impl Triangle {
     }
 
     /// Creates an iterator that forms a line along an axis of two points.
-    #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn line_along_axis(
         self,
         b: Self,
