@@ -10,7 +10,7 @@ use super::{
     edge::{Edge, EdgeDirection},
 };
 
-/// Vertex spin is a orientation of the vertex.
+/// Vertex spin is an orientation of the vertex.
 ///
 /// A vertex needs to know its `spin`. Spin correlates to which side [`VertexSpin::Up`] or [`VertexSpin::Down`]
 /// has two hexagons.
@@ -179,8 +179,8 @@ impl Vertex {
     ///
     /// let tri = vertex!(0, 0, 0).into_inner();
     /// ```
-    pub fn into_inner(&self) -> &Triangle {
-        &self.coord
+    pub fn into_inner(self) -> Triangle {
+        self.coord
     }
 
     /// Try to convert to an [`Axial`] coordinate representation.
@@ -265,10 +265,10 @@ impl Vertex {
     /// use gridava::hex::vertex::{Vertex, VertexDirection};
     /// use gridava::hex::coordinate::{axial, Axial};
     ///
-    /// let verta = axial!(0,0).vertex(VertexDirection::Up);
-    /// let vertb = axial!(1,0).vertex(VertexDirection::Up);
+    /// let vert_a = axial!(0,0).vertex(VertexDirection::Up);
+    /// let vert_b = axial!(1,0).vertex(VertexDirection::Up);
     ///
-    /// let dist = verta.distance(vertb);
+    /// let dist = vert_a.distance(vert_b);
     /// ```
     #[inline]
     pub fn distance(self, b: Self) -> u32 {
@@ -299,7 +299,7 @@ mod tests {
 
     #[test]
     fn into_inner() {
-        assert_eq!(*vertex!(0, 0, 0).into_inner(), triangle!(0, 0, 0));
+        assert_eq!(vertex!(0, 0, 0).into_inner(), triangle!(0, 0, 0));
     }
 
     #[test]

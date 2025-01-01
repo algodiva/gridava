@@ -11,9 +11,9 @@ use crate::{core::transform::Transform, edge};
 /// Axial based coordinates for hexagon grids.
 ///
 /// This coordinate system follows the law that `q + r + s = 0`.
-/// Only the q and r axes are stored and we calculate the s when we need to.
+/// Only the q and r axes are stored, and we calculate the s when we need to.
 ///
-/// The coordinate system is similar but not fully analogus to cartesian 3D X, Y, Z.
+/// The coordinate system is similar but not fully analogous to cartesian 3D X, Y, Z.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(PartialEq, Eq, Copy, Clone, Hash, Debug, Default)]
 pub struct Axial {
@@ -258,7 +258,7 @@ impl Axial {
         ]
     }
 
-    /// Checks if ALL of the supplied coordinates are neighbors to self.
+    /// Checks if ALL the supplied coordinates are neighbors to self.
     ///
     /// See [`Axial::neighbor`].
     ///
@@ -308,7 +308,7 @@ impl Axial {
     /// use gridava::hex::vertex::Vertex;
     /// use gridava::hex::coordinate::{Axial, axial};
     ///
-    /// axial!(0, 0).vertices().iter().map(|vert| {/* ... */} );
+    /// let vertices = axial!(0,0).vertices();
     ///
     /// ```
     pub fn vertices(&self) -> [Vertex; 6] {
@@ -331,7 +331,7 @@ impl Axial {
     /// use gridava::hex::edge::Edge;
     /// use gridava::hex::coordinate::{Axial, axial};
     ///
-    /// axial!(0, 0).edges().iter().map(|edge| {/* ... */} );
+    /// let edges = axial!(0, 0).edges();
     ///
     /// ```
     pub fn edges(&self) -> [Edge; 6] {
@@ -354,7 +354,7 @@ impl Axial {
     /// use gridava::hex::vertex::Vertex;
     /// use gridava::hex::coordinate::{Axial, axial};
     ///
-    /// let verts = axial!(0, 0).shared_vert_two(axial!(1, 0));
+    /// let vertices = axial!(0, 0).shared_vert_two(axial!(1, 0));
     ///
     /// ```
     pub fn shared_vert_two(&self, b: Self) -> Option<[Vertex; 2]> {
@@ -404,18 +404,18 @@ impl Axial {
     /// use gridava::hex::vertex::Vertex;
     /// use gridava::hex::coordinate::{Axial, axial};
     ///
-    /// let verts = axial!(0, 0).shared_vert_three(axial!(1, 0), axial!(0, 1));
+    /// let vertices = axial!(0, 0).shared_vert_three(axial!(1, 0), axial!(0, 1));
     ///
     /// ```
     pub fn shared_vert_three(&self, b: Self, c: Self) -> Option<Vertex> {
-        let ab_verts = self.shared_vert_two(b)?;
+        let ab_vertices = self.shared_vert_two(b)?;
 
         // If c has vert 0 then we exit with 0
-        if c.vertices().contains(&ab_verts[0]) {
-            Some(ab_verts[0])
-        } else if c.vertices().contains(&ab_verts[1]) {
+        if c.vertices().contains(&ab_vertices[0]) {
+            Some(ab_vertices[0])
+        } else if c.vertices().contains(&ab_vertices[1]) {
             // Otherwise it's the other
-            Some(ab_verts[1])
+            Some(ab_vertices[1])
         } else {
             None
         }
@@ -479,19 +479,19 @@ impl Axial {
     /// let coord = Axial::round((1.6, 3.2));
     /// ```
     #[cfg(feature = "std")]
-    pub fn round(fcoord: (f64, f64)) -> Self {
-        let qgrid = fcoord.0.round();
-        let rgrid = fcoord.1.round();
+    pub fn round(coord_f: (f64, f64)) -> Self {
+        let q_grid = coord_f.0.round();
+        let r_grid = coord_f.1.round();
 
-        let q_rem = fcoord.0 - qgrid;
-        let r_rem = fcoord.1 - rgrid;
+        let q_rem = coord_f.0 - q_grid;
+        let r_rem = coord_f.1 - r_grid;
 
         if q_rem.abs() >= r_rem.abs() {
-            let q = qgrid + f64::round(q_rem + 0.5 * r_rem);
-            axial!(q as i32, rgrid as i32)
+            let q = q_grid + f64::round(q_rem + 0.5 * r_rem);
+            axial!(q as i32, r_grid as i32)
         } else {
-            let r = rgrid + f64::round(r_rem + 0.5 * q_rem);
-            axial!(qgrid as i32, r as i32)
+            let r = r_grid + f64::round(r_rem + 0.5 * q_rem);
+            axial!(q_grid as i32, r as i32)
         }
     }
 
@@ -507,27 +507,27 @@ impl Axial {
     /// let coord = Axial::round((1.6, 3.2));
     /// ```
     #[cfg(not(feature = "std"))]
-    pub fn round(fcoord: (f64, f64)) -> Self {
+    pub fn round(coord_f: (f64, f64)) -> Self {
         use crate::lib::{fabs, round};
 
-        let qgrid = round(fcoord.0);
-        let rgrid = round(fcoord.1);
+        let q_grid = round(coord_f.0);
+        let r_grid = round(coord_f.1);
 
-        let q_rem = fcoord.0 - qgrid;
-        let r_rem = fcoord.1 - rgrid;
+        let q_rem = coord_f.0 - q_grid;
+        let r_rem = coord_f.1 - r_grid;
 
         if fabs(q_rem) >= fabs(r_rem) {
-            let q = qgrid + round(q_rem + 0.5 * r_rem);
+            let q = q_grid + round(q_rem + 0.5 * r_rem);
             axial!(q as i32, rgrid as i32)
         } else {
-            let r = rgrid + round(r_rem + 0.5 * q_rem);
+            let r = r_grid + round(r_rem + 0.5 * q_rem);
             axial!(qgrid as i32, r as i32)
         }
     }
 
-    /// Perferms linear interpolation between two coordinates.
+    /// Performs linear interpolation between two coordinates.
     ///
-    /// Given time `t`, or a percentage, calculate an inbetween value along the line.
+    /// Given time `t`, or a percentage, calculate an in between value along the line.
     ///
     /// # Example
     /// ```
@@ -609,10 +609,7 @@ impl Axial {
     /// let reflected = axial!(0, 0).reflect(Some(axial!(0, 1)), Axes::Q);
     /// ```
     pub fn reflect(&self, center: Option<Self>, axes: Axes) -> Self {
-        let center = match center {
-            Some(c) => c,
-            None => axial!(0, 0),
-        };
+        let center = center.unwrap_or_else(|| axial!(0, 0));
 
         let centered_coord = *self - center;
 
@@ -652,10 +649,7 @@ impl Axial {
     /// let coord = axial!(1, 0).rotate(Some(axial!(2, 0)), 1);
     /// ```
     pub fn rotate(&self, center: Option<Self>, rot_dir: i32) -> Self {
-        let center = match center {
-            Some(c) => c,
-            None => axial!(0, 0),
-        };
+        let center = center.unwrap_or_else(|| axial!(0, 0));
 
         let centered_coord = *self - center;
 
@@ -751,14 +745,14 @@ mod tests {
 
     #[test]
     fn hex_dir_from() {
-        assert!(HexDirection::from(0) == HexDirection::Front);
-        assert!(HexDirection::from(5) == HexDirection::from(-1));
-        assert!(HexDirection::from(4) == HexDirection::from(-2));
-        assert!(HexDirection::from(3) == HexDirection::from(-3));
-        assert!(HexDirection::from(2) == HexDirection::from(-4));
-        assert!(HexDirection::from(1) == HexDirection::from(-5));
-        assert!(HexDirection::from(6) == HexDirection::from(-6));
-        assert!(HexDirection::from(6) == HexDirection::from(0));
+        assert_eq!(HexDirection::from(0), HexDirection::Front);
+        assert_eq!(HexDirection::from(5), HexDirection::from(-1));
+        assert_eq!(HexDirection::from(4), HexDirection::from(-2));
+        assert_eq!(HexDirection::from(3), HexDirection::from(-3));
+        assert_eq!(HexDirection::from(2), HexDirection::from(-4));
+        assert_eq!(HexDirection::from(1), HexDirection::from(-5));
+        assert_eq!(HexDirection::from(6), HexDirection::from(-6));
+        assert_eq!(HexDirection::from(6), HexDirection::from(0));
     }
 
     #[test]
@@ -807,7 +801,7 @@ mod tests {
 
     #[test]
     fn add() {
-        assert!(axial!(4, 2) + axial!(1, 3) == axial!(5, 5));
+        assert_eq!(axial!(4, 2) + axial!(1, 3), axial!(5, 5));
     }
 
     #[test]
@@ -816,12 +810,12 @@ mod tests {
 
         ax += axial!(-1, -3);
 
-        assert!(ax == axial!(3, -1));
+        assert_eq!(ax, axial!(3, -1));
     }
 
     #[test]
     fn sub() {
-        assert!(axial!(4, 2) - axial!(1, 3) == axial!(3, -1));
+        assert_eq!(axial!(4, 2) - axial!(1, 3), axial!(3, -1));
     }
 
     #[test]
@@ -830,20 +824,20 @@ mod tests {
 
         ax -= axial!(-1, -3);
 
-        assert!(ax == axial!(5, 5));
+        assert_eq!(ax, axial!(5, 5));
     }
 
     #[allow(clippy::erasing_op)]
     #[test]
-    fn mult() {
-        assert!(axial!(4, 2) * 2 == axial!(8, 4));
-        assert!(axial!(4, 2) * 0 == axial!(0, 0));
+    fn mul() {
+        assert_eq!(axial!(4, 2) * 2, axial!(8, 4));
+        assert_eq!(axial!(4, 2) * 0, axial!(0, 0));
     }
 
     #[test]
     fn div() {
-        assert!(axial!(4, 2) / 2 == axial!(2, 1));
-        assert!(axial!(41, 23) / 6 == axial!(6, 3));
+        assert_eq!(axial!(4, 2) / 2, axial!(2, 1));
+        assert_eq!(axial!(41, 23) / 6, axial!(6, 3));
     }
 
     #[test]

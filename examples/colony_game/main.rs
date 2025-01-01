@@ -19,7 +19,7 @@ impl Collection<Axial, GameTile> for GameBoard {
 
 /// This example provides real world applications of the library in the context of a colony board game.
 /// For the sake of brevity, the application will provide mainly examples of how the game logic will
-/// interact with the library. i.e. How to generate an island or calculate longest road.
+/// interact with the library. i.e. How to generate an island or calculate the longest road.
 /// The example in this repository won't have fully functioning graphics or a game loop.
 fn main() {
     let mut rng = thread_rng();
@@ -77,7 +77,8 @@ pub fn generate_island() -> HexShape<GameTile> {
     let mut number_pool_iter = shuffled_number_pool.into_iter();
     // End: Setting up random pool iterators
 
-    // Fill in the island. Tile pool is 19 long because we add a desert tile, and number pool is 18 long because we have to ensure
+    // Fill in the island tiles. Tile pool is 19 long because we add a desert tile, and number
+    // pool is 18 long because we have to ensure
     //  the desert tile has an unreachable number roll by a 2d6 like 0.
     HexShape::make_hexagon(2, 0, true, |_| match tile_pool_iter.next() {
         Some(TileType::Desert) => GameTile {
@@ -106,7 +107,7 @@ pub fn collect_resources(roll: u32, board: &GameBoard, player: &mut Player) {
             // Then we filter based on vertices that are owned by the player and have a development on them.
             coord.vertices().into_iter().filter_map(move |vert| {
                 board
-                    .verts
+                    .vertices
                     .get(&vert)
                     .filter(|vert_data| {
                         vert_data.owning_player == pid && vert_data.vert_type != DevType::None
@@ -115,7 +116,7 @@ pub fn collect_resources(roll: u32, board: &GameBoard, player: &mut Player) {
                     .map(|vert_data| (tile_data, vert_data))
             })
         })
-        // For each vertice that has a development on a tile that gives resources do this logic.
+        // For each vertex that has a development on a tile that gives resources do this logic.
         .for_each(|(tile_data, vert_data)| {
             // This should always be Ok since it should be impossible to roll a 0 from 2d6, which is the desert tile, and desert tile is what
             // will cause the try_into to fail. But for completeness we'll do proper error checking here.
@@ -170,7 +171,7 @@ where
 ///
 /// Checks for if a house can be placed following the rules as follows:
 ///
-/// - A house must be on a vertex that is connected (adjacent) to a owned road.
+/// - A house must be on a vertex that is connected (adjacent) to an owned road.
 /// - A house must not have another house in any of the three adjacent vertices.
 pub fn place_house(
     board: &mut GameBoard,
@@ -180,10 +181,10 @@ pub fn place_house(
     let player_id = player.id;
 
     // Check if we have a house in an adjacent vertex.
-    let is_house_adjacent = vert.adjacent_vertices().is_some_and(|verts| {
-        verts.iter().any(|vert| {
+    let is_house_adjacent = vert.adjacent_vertices().is_some_and(|vertices| {
+        vertices.iter().any(|vert| {
             board
-                .verts
+                .vertices
                 .get(vert)
                 .map_or(false, |val| val.vert_type != DevType::None)
         })
@@ -205,7 +206,7 @@ pub fn place_house(
 
     // Consume resources and purchase, awarding the player the development
     purchase(PurchaseType::House, player, || {
-        board.verts.insert(
+        board.vertices.insert(
             *vert,
             GameVert {
                 vert_type: DevType::House,
@@ -219,7 +220,7 @@ pub fn place_house(
 ///
 /// Checks for if an edge can be placed following the rules as follows:
 ///
-/// - A road must be on a edge with an adjacent edge being another road owned by the same player
+/// - A road must be on an edge with an adjacent edge being another road owned by the same player
 ///
 /// or
 /// - A road must be on an edge with an adjacent vertex being a development such as a house or city.
@@ -237,9 +238,9 @@ pub fn place_road(
         })
     });
 
-    // Do we have a owned and developed vertex adjacent to us?
+    // Do we have an owned and developed vertex adjacent to us?
     let is_development_adjacent = edge.endpoints().iter().any(|v| {
-        board.verts.get(v).map_or(false, |val| {
+        board.vertices.get(v).map_or(false, |val| {
             val.vert_type != DevType::None && val.owning_player == player_id
         })
     });

@@ -157,7 +157,7 @@ mod tests {
     }
 
     #[test]
-    fn from_hexdir() {
+    fn from_hex_dir() {
         assert_eq!(
             Edge::from(HexDirection::Front),
             edge!(1, 0, EdgeDirection::West)

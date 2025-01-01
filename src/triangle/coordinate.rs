@@ -68,11 +68,11 @@ impl Triangle {
     /// Compute the z coordinate for a vertex coordinate
     ///
     /// An important distinction is made for this type of coordinate since for
-    /// verts, the sum must equal 0.
-    pub fn compute_z_vert(&self) -> Self {
+    /// vertices, the sum must equal 0.
+    pub fn compute_z_vert(self) -> Self {
         Triangle {
             z: -self.x - self.y,
-            ..*self
+            ..self
         }
     }
 
@@ -86,19 +86,19 @@ impl Triangle {
     }
 
     /// Compute the z coordinate for a tri-face coordinate
-    pub fn compute_z(&self, orientation: TriOrientation) -> Self {
+    pub fn compute_z(self, orientation: TriOrientation) -> Self {
         Triangle {
             z: Self::solve_coord((self.x, self.y), orientation),
-            ..*self
+            ..self
         }
     }
 
     /// Converts a tri coordinate to cartesian coordinates.
-    pub fn to_cartesian(&self) -> (f64, f64) {
+    pub fn to_cartesian(self) -> (f64, f64) {
         (
-            (0.5 * self.x as f64 + -0.5 * self.z as f64),
-            (-SQRT_3 / 6.0 * self.x as f64 + SQRT_3 / 3.0 * self.y as f64
-                - SQRT_3 / 6.0 * self.z as f64),
+            0.5 * self.x as f64 + -0.5 * self.z as f64,
+            -SQRT_3 / 6.0 * self.x as f64 + SQRT_3 / 3.0 * self.y as f64
+                - SQRT_3 / 6.0 * self.z as f64,
         )
     }
 
@@ -115,21 +115,21 @@ impl Triangle {
     ///
     /// Since the coordinates can map to faces or vertices it can be
     /// beneficial to check if it is a face or not.
-    pub fn is_tri_face(&self) -> bool {
+    pub fn is_tri_face(self) -> bool {
         (self.x + self.y + self.z) != 0
     }
 
     /// Determines the orientation
-    pub fn orientation(&self) -> TriOrientation {
-        (*self).into()
+    pub fn orientation(self) -> TriOrientation {
+        self.into()
     }
 
     /// Rotate about the origin tri(0, 0, 0)
     ///
     /// Positive rot_dir means CW, negative is CCW
-    pub fn rotate(&self, rot_dir: i32) -> Self {
+    pub fn rotate(self, rot_dir: i32) -> Self {
         match rot_dir.rem_euclid(6) {
-            0 => *self,
+            0 => self,
             1 => triangle!(1 - self.z, 1 - self.x, 1 - self.y),
             2 => triangle!(self.y, self.z, self.x),
             3 => triangle!(1 - self.x, 1 - self.y, 1 - self.z),
@@ -144,21 +144,21 @@ impl Triangle {
     /// If rot_dir is a multiple of 2 a rotation of a tri face about another tri face
     /// will produce another tri face. However, a rot_dir that is odd with the same
     /// coordinates will produce half step gibberish.
-    pub fn rotate_about(&self, about_b: &Self, rot_dir: i32) -> Self {
-        *about_b + (*self - *about_b).rotate(rot_dir)
+    pub fn rotate_about(self, about_b: Self, rot_dir: i32) -> Self {
+        about_b + (self - about_b).rotate(rot_dir)
     }
 
-    /// Reflect a tri across the cartesian x axis
-    pub fn reflect_x(&self) -> Self {
+    /// Reflect a tri across the cartesian x-axis
+    pub fn reflect_x(self) -> Self {
         triangle!(self.z, self.y, self.x)
     }
 
-    /// Reflect a tri across the cartesian y axis
-    pub fn reflect_y(&self) -> Self {
+    /// Reflect a tri across the cartesian y-axis
+    pub fn reflect_y(self) -> Self {
         triangle!(1 - self.z, 1 - self.y, 1 - self.x)
     }
 
-    /// Projects a coordinate onto the line along the x axis at x
+    /// Projects a coordinate onto the line along the x-axis at x
     pub fn projection_x(self, x: i32) -> Self {
         if self.x == x {
             // We are already on the axis
@@ -175,7 +175,7 @@ impl Triangle {
         }
     }
 
-    /// Projects a coordinate onto the line along the y axis at y
+    /// Projects a coordinate onto the line along the y-axis at y
     pub fn projection_y(self, y: i32) -> Self {
         if self.y == y {
             // We are already on the axis
@@ -358,7 +358,7 @@ impl Triangle {
             endpoints.push(b);
         }
 
-        // Traverse the endpoints array to smooth out the sub lines generated.
+        // Traverse the endpoints array to smooth out the sublines generated.
         let mut start = self;
         (0..endpoints.len())
             .flat_map(|i| {
@@ -583,19 +583,19 @@ mod tests {
         );
 
         // Accuracy
-        macro_rules! tupexpand {
+        macro_rules! tup_expand {
             ($lhs:expr, $tup:expr) => {
                 let lhs = $lhs;
                 assert_f64_near!(lhs.0, $tup.0);
                 assert_f64_near!(lhs.1, $tup.1);
             };
         }
-        tupexpand!(triangle!(0, 1, 0).to_cartesian(), (0.0, 0.5773502691896262));
-        tupexpand!(
+        tup_expand!(triangle!(0, 1, 0).to_cartesian(), (0.0, 0.5773502691896262));
+        tup_expand!(
             triangle!(0, 2, -1).to_cartesian(),
             (0.5, 1.4433756729740643)
         );
-        tupexpand!(
+        tup_expand!(
             triangle!(0, 0, 2).to_cartesian(),
             (-1.0, -0.5773502691896257)
         );
@@ -623,7 +623,7 @@ mod tests {
     #[test]
     fn rotate_about() {
         assert_eq!(
-            triangle!(1, 1, 0).rotate_about(&triangle!(1, 0, -1), 1),
+            triangle!(1, 1, 0).rotate_about(triangle!(1, 0, -1), 1),
             triangle!(1, 1, -1)
         );
     }
@@ -734,10 +734,10 @@ mod tests {
         // - The line is a correct path
         // - a -> b == (b -> a).reverse()
         macro_rules! test {
-            ($tria:expr, $trib:expr, $testarr:expr) => {
-                let dist = $tria.distance($trib);
-                let coords = $tria.line($trib);
-                assert_eq!(coords, $testarr, "Line array does not match test array");
+            ($a:expr, $b:expr, $test_array:expr) => {
+                let dist = $a.distance($b);
+                let coords = $a.line($b);
+                assert_eq!(coords, $test_array, "Line array does not match test array");
                 assert_eq!(
                     dist + 1,
                     coords.len() as u32,
@@ -745,7 +745,7 @@ mod tests {
                     dist + 1,
                     coords.len()
                 );
-                let mut reversed = $trib.line($tria);
+                let mut reversed = $b.line($a);
                 reversed.reverse();
                 assert_eq!(coords, reversed, "a.line(b) != b.line(a).reverse()");
             };

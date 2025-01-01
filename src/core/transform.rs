@@ -66,7 +66,7 @@ pub struct Transform<T: Copy + AddAssign> {
     /// Rotation of the object around the z-axis. Positive CW, negative CCW
     pub rotation: i32,
     /// 2D scale of an object.
-    pub scale: Vector2D<f32>, // Can this be a coordinate or even a tuple of floats and not a i32?
+    pub scale: Vector2D<f32>, // Can this be a coordinate or even a tuple of floats and not an i32?
 }
 
 /// Helper macro to create [`Transform`].
