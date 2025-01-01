@@ -95,10 +95,10 @@ impl Triangle {
 
     /// Converts a tri coordinate to cartesian coordinates.
     pub fn to_cartesian(self) -> (f64, f64) {
+        let (x, y, z) = (self.x as f64, self.y as f64, self.z as f64);
         (
-            0.5 * self.x as f64 + -0.5 * self.z as f64,
-            -SQRT_3 / 6.0 * self.x as f64 + SQRT_3 / 3.0 * self.y as f64
-                - SQRT_3 / 6.0 * self.z as f64,
+            0.5 * x + -0.5 * z,
+            -SQRT_3 / 6.0 * x + SQRT_3 / 3.0 * y - SQRT_3 / 6.0 * z,
         )
     }
 
@@ -209,6 +209,29 @@ impl Triangle {
             triangle!(self.x, self.y, z)
                 + (PROJECTION_LUT[sign as usize] * ((dz.abs() + offset) / 2))
         }
+    }
+
+    /// Direction to b from self.
+    ///
+    /// Outputs degrees from positive x-axis to the target b.
+    /// The range of output is `0.0..360.0`
+    #[cfg(feature = "std")]
+    pub fn direction(self, b: Self) -> f64 {
+        // direction to b from the pov of self
+        let (x, y) = (b - self).to_cartesian();
+        -y.atan2(-x).to_degrees() + 180.0
+    }
+
+    /// Direction to b from self.
+    ///
+    /// Outputs degrees from positive x-axis to the target b.
+    /// The range of output is `0.0..360.0`
+    #[cfg(not(feature = "std"))]
+    pub fn direction(&self, b: Self) -> f64 {
+        use crate::lib::atan2;
+        // direction to b from the pov of self
+        let (x, y) = (b - self).to_cartesian();
+        atan2(-y, -x).to_degrees() + 180.0
     }
 
     /// Linear interpolation between two tri faces
@@ -702,6 +725,28 @@ mod tests {
         test!(triangle!(0, 1, 1), -1, triangle!(1, 2, -1));
         test!(triangle!(-1, 0, 2), -1, triangle!(1, 2, -1));
         test!(triangle!(2, 1, -1), 3, triangle!(0, -1, 3));
+    }
+
+    #[test]
+    fn direction() {
+        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(1, 1, 0)), 0.0);
+        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(0, 1, 0)), 30.0);
+        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(0, 2, 0)), 60.0);
+        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(-1, 2, 0)), 90.0);
+        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(-1, 2, 1)), 120.0);
+        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(-1, 1, 1)), 150.0);
+        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(-1, 1, 2)), 180.0);
+        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(-1, 0, 2)), 210.0);
+        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(0, 0, 2)), 240.0);
+        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(0, 0, 1)), 270.0);
+        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(1, 0, 1)), 300.0);
+        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(1, 0, 0)), 330.0);
+
+        assert_f64_near!(triangle!(0, 0, 2).direction(triangle!(1, 1, -1)), 30.0);
+        assert_f64_near!(
+            triangle!(0, 0, 2).direction(triangle!(2, 1, -1)),
+            19.106605350869103
+        );
     }
 
     #[test]
