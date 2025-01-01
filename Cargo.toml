@@ -14,7 +14,7 @@ exclude = ["/.gitignore", "/TODO", "/.gitattributes", "/.github"]
 ndarray = { version = "0.16.1", default-features = false }
 serde = { version = "1.0", default-features = false, features = ["derive"], optional = true }
 libm = { version = "0.2.11", default-features = false }
-either = { version = "1.13.0" }
+either = { version = "1.13.0", default-features = false }
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
@@ -24,7 +24,7 @@ rand = "0.8.5"
 [features]
 default = ["std"]
 serde = ["dep:serde", "ndarray/serde"]
-std = ["serde?/std", "ndarray/std"]
+std = ["serde?/std", "ndarray/std", "either/use_std"]
 alloc = ["serde?/alloc"]
 
 [profile.release-debug]
