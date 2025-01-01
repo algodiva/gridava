@@ -225,7 +225,10 @@ impl Triangle {
         Self::nearest_tri_face((x, y))
     }
 
+    /// Computes the intersection of two coordinates.
     pub fn intersection(self, b: Self) -> ([Triangle; 2], [Triangle; 2]) {
+        // TODO: Should probably ensure divisor cannot be 0 by doing an axis check? Also is this
+        // even useful as a public function?
         let slope = (self.x - b.x) / (self.y - b.y);
 
         match slope.is_negative() || slope == 0 {
@@ -262,7 +265,8 @@ impl Triangle {
         }
     }
 
-    fn shared_axis(self, b: Self) -> Option<Axes3D> {
+    /// Determines which axis, if any, two coordinates share.
+    pub fn shared_axis(self, b: Self) -> Option<Axes3D> {
         if self.x == b.x {
             Some(Axes3D::X)
         } else if self.y == b.y {
@@ -274,12 +278,13 @@ impl Triangle {
         }
     }
 
+    // Produces an iterator forming a line between self and b that is as close to the cartesian
+    // line as possible, in other words, smooth.
     #[cfg(any(feature = "std", feature = "alloc"))]
     fn sub_line(
         self,
         b: Self,
     ) -> Either<impl DoubleEndedIterator<Item = Self>, impl DoubleEndedIterator<Item = Self>> {
-        // This could be changed to an array when VLAs get implemented into stable Rust
         let (intersected, offsets) = self.intersection(b);
         let ds0 = self.distance(intersected[0]);
         let ds1 = self.distance(intersected[1]);
@@ -332,6 +337,10 @@ impl Triangle {
         }
     }
 
+    /// Computes a smooth line from any coordinate to another.
+    ///
+    /// A step size of about 8 is good for most cases having a good tradeoff of performance and
+    /// appearance.
     // Step size should be a power of 2, then we can bit shift divide
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn smooth_line(self, b: Self, step_size: u32) -> Vec<Self> {
@@ -343,7 +352,8 @@ impl Triangle {
             .map(|i| self.lerp(b, (step_size as f64 + (step_size * i) as f64) / dist as f64))
             .collect::<Vec<_>>();
 
-        // Since the dist could be a number not evenly divisible by STEP_SIZE we need to check if we need to append b.
+        // Since the dist could be a number not evenly divisible by STEP_SIZE we need to check if
+        // we need to append b.
         if (dist % step_size) > 0 {
             endpoints.push(b);
         }
@@ -351,7 +361,7 @@ impl Triangle {
         // Traverse the endpoints array to smooth out the sub lines generated.
         let mut start = self;
         (0..endpoints.len())
-            .map(|i| {
+            .flat_map(|i| {
                 let (a, b) = (start, endpoints[i]);
                 start = endpoints[i];
                 if let Some(axis) = a.shared_axis(b) {
@@ -360,10 +370,10 @@ impl Triangle {
                     Right(a.sub_line(b))
                 }
             })
-            .flatten()
             .collect()
     }
 
+    /// Creates an iterator that forms a line along an axis of two points.
     #[cfg(any(feature = "std", feature = "alloc"))]
     pub fn line_along_axis(
         self,
@@ -371,7 +381,7 @@ impl Triangle {
         axis: Axes3D,
         inclusive: bool,
     ) -> impl DoubleEndedIterator<Item = Self> {
-        let dist = self.distance(b) as u32;
+        let dist = self.distance(b);
         let range = 0..dist - (!inclusive) as u32;
         let is_start_down = match self.orientation() {
             TriOrientation::Up => false,
@@ -405,18 +415,14 @@ impl Triangle {
             let dbl_step = step[0] + step[1];
             if i & 1 == 1 {
                 // Is odd
+                // Doing right shift by 1 to divide by 2
                 dbl_step * ((i + 1) >> 1) as i32 + self
             } else {
+                // Is even
+                // Doing right shift by 1 to divide by 2
                 dbl_step * (i >> 1) as i32 + self + step[(is_start_down ^ ((i & 1) != 0)) as usize]
             }
         }))
-        // [self]
-        //     .into_iter()
-        //     .chain(range.scan(self, move |start, i| {
-        //         let ret = *start + step[(is_start_down ^ ((i & 1) != 0)) as usize];
-        //         *start = ret;
-        //         Some(ret)
-        //     }))
     }
 
     /// Produces a line from self to b
@@ -427,12 +433,8 @@ impl Triangle {
     pub fn line(self, b: Self) -> Vec<Self> {
         if self == b {
             vec![self]
-        } else if self.x == b.x {
-            self.line_along_axis(b, Axes3D::X, true).collect()
-        } else if self.y == b.y {
-            self.line_along_axis(b, Axes3D::Y, true).collect()
-        } else if self.z == b.z {
-            self.line_along_axis(b, Axes3D::Z, true).collect()
+        } else if let Some(axis) = self.shared_axis(b) {
+            self.line_along_axis(b, axis, true).collect()
         } else {
             self.smooth_line(b, 8)
         }
