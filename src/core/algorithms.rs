@@ -46,6 +46,9 @@ impl Display for FFError {
 ///         [3, 1, 0],
 ///         [3, 1, 0],
 ///         [3, 1, 0]]);
+/// } else {
+///     // Should never reach
+///     assert!(false);          
 /// }
 /// ```
 /// Uses the Span-filling algorithm
