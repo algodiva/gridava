@@ -18,28 +18,16 @@ pub struct Triangle {
     pub z: i32,
 }
 
-/// Helper macro to create [`Triangle`] structs.
-#[macro_export]
-macro_rules! triangle {
-    ($x:expr, $y:expr, $z:expr) => {
-        Triangle {
-            x: $x,
-            y: $y,
-            z: $z,
-        }
-    };
-}
-pub use triangle;
-
 /// Orientation of the tri-coordinate
 ///
 /// - Up => the base is facing downwards.
 /// - Down => base is facing upwards
 /// - Vert => vertex of a triangle
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Hash, Debug, Default)]
 pub enum TriOrientation {
     /// Upwards orientated triangle
+    #[default]
     Up,
     /// Downwards orientated triangle
     Down,
@@ -55,8 +43,11 @@ impl From<Triangle> for TriOrientation {
 }
 
 /// Primary directions of travel on a triangular grid.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Hash, Debug, Default)]
 pub enum TriDirection {
     /// Left direction, correlates to negative x
+    #[default]
     Left,
     /// Right direction, correlates to positive x
     Right,
@@ -64,7 +55,14 @@ pub enum TriDirection {
     Base,
 }
 
+const UNIT_LENGTH: u32 = 1;
+
 impl Triangle {
+    /// Constructor for a Triangle.
+    pub const fn new(x: i32, y: i32, z: i32) -> Self {
+        Self { x, y, z }
+    }
+
     /// Compute the z coordinate for a vertex coordinate
     ///
     /// An important distinction is made for this type of coordinate since for
@@ -94,20 +92,20 @@ impl Triangle {
     }
 
     /// Converts a tri coordinate to cartesian coordinates.
-    pub fn to_cartesian(self) -> (f64, f64) {
+    pub fn to_cartesian(self, edge_length: u32) -> (f64, f64) {
         let (x, y, z) = (self.x as f64, self.y as f64, self.z as f64);
         (
-            0.5 * x + -0.5 * z,
-            -SQRT_3 / 6.0 * x + SQRT_3 / 3.0 * y - SQRT_3 / 6.0 * z,
+            (0.5 * x + -0.5 * z) * edge_length as f64,
+            (-SQRT_3 / 6.0 * x + SQRT_3 / 3.0 * y - SQRT_3 / 6.0 * z) * edge_length as f64,
         )
     }
 
     /// Converts from cartesian coordinates to the nearest tri face coordinate.
-    pub fn nearest_tri_face(cartesian: (f64, f64)) -> Self {
-        triangle!(
-            (1.0 * cartesian.0 - SQRT_3 / 3.0 * cartesian.1).ceil() as i32,
-            (SQRT_3 * 2.0 / 3.0 * cartesian.1).floor() as i32 + 1,
-            (-1.0 * cartesian.0 - SQRT_3 / 3.0 * cartesian.1).ceil() as i32
+    pub fn nearest_tri_face(cartesian: (f64, f64), edge_length: u32) -> Self {
+        Triangle::new(
+            ((1.0 * cartesian.0 - SQRT_3 / 3.0 * cartesian.1) / edge_length as f64).ceil() as i32,
+            ((SQRT_3 * 2.0 / 3.0 * cartesian.1) / edge_length as f64).floor() as i32 + 1,
+            ((-1.0 * cartesian.0 - SQRT_3 / 3.0 * cartesian.1) / edge_length as f64).ceil() as i32,
         )
     }
 
@@ -130,11 +128,11 @@ impl Triangle {
     pub fn rotate(self, rot_dir: i32) -> Self {
         match rot_dir.rem_euclid(6) {
             0 => self,
-            1 => triangle!(1 - self.z, 1 - self.x, 1 - self.y),
-            2 => triangle!(self.y, self.z, self.x),
-            3 => triangle!(1 - self.x, 1 - self.y, 1 - self.z),
-            4 => triangle!(self.z, self.x, self.y),
-            5 => triangle!(1 - self.y, 1 - self.z, 1 - self.x),
+            1 => Triangle::new(1 - self.z, 1 - self.x, 1 - self.y),
+            2 => Triangle::new(self.y, self.z, self.x),
+            3 => Triangle::new(1 - self.x, 1 - self.y, 1 - self.z),
+            4 => Triangle::new(self.z, self.x, self.y),
+            5 => Triangle::new(1 - self.y, 1 - self.z, 1 - self.x),
             _ => unreachable!(), // should never reach
         }
     }
@@ -150,12 +148,12 @@ impl Triangle {
 
     /// Reflect a tri across the cartesian x-axis
     pub fn reflect_x(self) -> Self {
-        triangle!(self.z, self.y, self.x)
+        Triangle::new(self.z, self.y, self.x)
     }
 
     /// Reflect a tri across the cartesian y-axis
     pub fn reflect_y(self) -> Self {
-        triangle!(1 - self.z, 1 - self.y, 1 - self.x)
+        Triangle::new(1 - self.z, 1 - self.y, 1 - self.x)
     }
 
     /// Projects a coordinate onto the line along the x-axis at x
@@ -169,8 +167,9 @@ impl Triangle {
             let ori = self.orientation() == TriOrientation::Up;
             let offset = (sign == ori) as i32;
 
-            const PROJECTION_LUT: [Triangle; 2] = [triangle!(0, 1, 1), triangle!(0, -1, -1)];
-            triangle!(x, self.y, self.z)
+            const PROJECTION_LUT: [Triangle; 2] =
+                [Triangle::new(0, 1, 1), Triangle::new(0, -1, -1)];
+            Triangle::new(x, self.y, self.z)
                 + (PROJECTION_LUT[sign as usize] * ((dx.abs() + offset) / 2))
         }
     }
@@ -187,8 +186,9 @@ impl Triangle {
             let offset = (sign == ori) as i32;
 
             // The two coordinates are more than 1 lane apart
-            const PROJECTION_LUT: [Triangle; 2] = [triangle!(1, 0, 1), triangle!(-1, 0, -1)];
-            triangle!(self.x, y, self.z)
+            const PROJECTION_LUT: [Triangle; 2] =
+                [Triangle::new(1, 0, 1), Triangle::new(-1, 0, -1)];
+            Triangle::new(self.x, y, self.z)
                 + (PROJECTION_LUT[sign as usize] * ((dy.abs() + offset) / 2))
         }
     }
@@ -205,8 +205,9 @@ impl Triangle {
             let offset = (sign == ori) as i32;
 
             // The two coordinates are more than 1 lane apart
-            const PROJECTION_LUT: [Triangle; 2] = [triangle!(1, 1, 0), triangle!(-1, -1, 0)];
-            triangle!(self.x, self.y, z)
+            const PROJECTION_LUT: [Triangle; 2] =
+                [Triangle::new(1, 1, 0), Triangle::new(-1, -1, 0)];
+            Triangle::new(self.x, self.y, z)
                 + (PROJECTION_LUT[sign as usize] * ((dz.abs() + offset) / 2))
         }
     }
@@ -218,7 +219,7 @@ impl Triangle {
     #[cfg(feature = "std")]
     pub fn direction(self, b: Self) -> f64 {
         // direction to b from the pov of self
-        let (x, y) = (b - self).to_cartesian();
+        let (x, y) = (b - self).to_cartesian(UNIT_LENGTH);
         -y.atan2(-x).to_degrees() + 180.0
     }
 
@@ -239,19 +240,17 @@ impl Triangle {
         // Until a method to do it can be found for native tri coords,
         // we'll just convert to cartesian and interpolate there.
 
-        let (self_x, self_y) = self.to_cartesian();
-        let (b_x, b_y) = b.to_cartesian();
+        let (self_x, self_y) = self.to_cartesian(UNIT_LENGTH);
+        let (b_x, b_y) = b.to_cartesian(UNIT_LENGTH);
 
         let x = crate::core::misc::lerp(self_x, b_x, t);
         let y = crate::core::misc::lerp(self_y, b_y, t);
 
-        Self::nearest_tri_face((x, y))
+        Self::nearest_tri_face((x, y), UNIT_LENGTH)
     }
 
     /// Computes the intersection of two coordinates.
-    pub fn intersection(self, b: Self) -> ([Triangle; 2], [Triangle; 2]) {
-        // TODO: Should probably ensure divisor cannot be 0 by doing an axis check? Also is this
-        // even useful as a public function?
+    fn intersection(self, b: Self) -> ([Triangle; 2], [Triangle; 2]) {
         let slope = (self.x - b.x) / (self.y - b.y);
 
         match slope.is_negative() || slope == 0 {
@@ -264,10 +263,10 @@ impl Triangle {
 
                 (
                     [
-                        triangle!(x, Self::solve_coord((x, z), TriOrientation::Down), z),
-                        triangle!(x, Self::solve_coord((x, z), TriOrientation::Up), z),
+                        Triangle::new(x, Self::solve_coord((x, z), TriOrientation::Down), z),
+                        Triangle::new(x, Self::solve_coord((x, z), TriOrientation::Up), z),
                     ],
-                    [triangle!(-1, 1, 1), triangle!(-1, -1, 1)],
+                    [Triangle::new(-1, 1, 1), Triangle::new(-1, -1, 1)],
                 )
             }
             // Positive slope
@@ -279,10 +278,10 @@ impl Triangle {
 
                 (
                     [
-                        triangle!(x, y, Self::solve_coord((x, y), TriOrientation::Up)),
-                        triangle!(x, y, Self::solve_coord((x, y), TriOrientation::Down)),
+                        Triangle::new(x, y, Self::solve_coord((x, y), TriOrientation::Up)),
+                        Triangle::new(x, y, Self::solve_coord((x, y), TriOrientation::Down)),
                     ],
-                    [triangle!(-1, 1, -1), triangle!(-1, 1, 1)],
+                    [Triangle::new(-1, 1, -1), Triangle::new(-1, 1, 1)],
                 )
             }
         }
@@ -365,7 +364,7 @@ impl Triangle {
     /// appearance.
     // Step size should be a power of 2, then we can bit shift divide
     #[cfg(any(feature = "std", feature = "alloc"))]
-    pub fn smooth_line(self, b: Self, step_size: u32) -> Vec<Self> {
+    fn smooth_line(self, b: Self, step_size: u32) -> Vec<Self> {
         // Slice up line into small lines based on step size
         let dist = self.distance(b);
         let num_subdivisions = dist / step_size;
@@ -396,7 +395,7 @@ impl Triangle {
     }
 
     /// Creates an iterator that forms a line along an axis of two points.
-    pub fn line_along_axis(
+    fn line_along_axis(
         self,
         b: Self,
         axis: Axes3D,
@@ -412,23 +411,23 @@ impl Triangle {
         let step = match axis {
             Axes3D::X => {
                 if (self.y < b.y) && (self.z > b.z) {
-                    [triangle!(0, 0, -1), triangle!(0, 1, 0)]
+                    [Triangle::new(0, 0, -1), Triangle::new(0, 1, 0)]
                 } else {
-                    [triangle!(0, -1, 0), triangle!(0, 0, 1)]
+                    [Triangle::new(0, -1, 0), Triangle::new(0, 0, 1)]
                 }
             }
             Axes3D::Y => {
                 if (self.x < b.x) && (self.z > b.z) {
-                    [triangle!(0, 0, -1), triangle!(1, 0, 0)]
+                    [Triangle::new(0, 0, -1), Triangle::new(1, 0, 0)]
                 } else {
-                    [triangle!(-1, 0, 0), triangle!(0, 0, 1)]
+                    [Triangle::new(-1, 0, 0), Triangle::new(0, 0, 1)]
                 }
             }
             Axes3D::Z => {
                 if (self.x < b.x) && (self.y > b.y) {
-                    [triangle!(0, -1, 0), triangle!(1, 0, 0)]
+                    [Triangle::new(0, -1, 0), Triangle::new(1, 0, 0)]
                 } else {
-                    [triangle!(-1, 0, 0), triangle!(0, 1, 0)]
+                    [Triangle::new(-1, 0, 0), Triangle::new(0, 1, 0)]
                 }
             }
         };
@@ -470,12 +469,12 @@ impl Triangle {
                 let dz0 = 1 - (self.x + self.y + self.z + dx + dy);
 
                 if dx.abs() + dy.abs() + dz0.abs() <= dist {
-                    ret.push(self + triangle!(dx, dy, dz0));
+                    ret.push(self + Triangle::new(dx, dy, dz0));
                 }
 
                 let dz1 = dz0 + 1;
                 if dx.abs() + dy.abs() + dz1.abs() <= dist {
-                    ret.push(self + triangle!(dx, dy, dz1));
+                    ret.push(self + Triangle::new(dx, dy, dz1));
                 }
             }
         }
@@ -485,13 +484,13 @@ impl Triangle {
     /// Generate a neighbor coordinate
     pub fn neighbor(self, direction: TriDirection) -> Self {
         match (direction, self.orientation()) {
-            (TriDirection::Left, TriOrientation::Up) => triangle!(self.x - 1, self.y, self.z),
-            (TriDirection::Base, TriOrientation::Up) => triangle!(self.x, self.y - 1, self.z),
-            (TriDirection::Right, TriOrientation::Up) => triangle!(self.x, self.y, self.z - 1),
-            (TriDirection::Left, TriOrientation::Down) => triangle!(self.x, self.y, self.z + 1),
-            (TriDirection::Base, TriOrientation::Down) => triangle!(self.x, self.y + 1, self.z),
+            (TriDirection::Left, TriOrientation::Up) => Triangle::new(self.x - 1, self.y, self.z),
+            (TriDirection::Base, TriOrientation::Up) => Triangle::new(self.x, self.y - 1, self.z),
+            (TriDirection::Right, TriOrientation::Up) => Triangle::new(self.x, self.y, self.z - 1),
+            (TriDirection::Left, TriOrientation::Down) => Triangle::new(self.x, self.y, self.z + 1),
+            (TriDirection::Base, TriOrientation::Down) => Triangle::new(self.x, self.y + 1, self.z),
             (TriDirection::Right, TriOrientation::Down) => {
-                triangle!(self.x + 1, self.y, self.z)
+                Triangle::new(self.x + 1, self.y, self.z)
             }
         }
     }
@@ -548,15 +547,52 @@ impl Sub for Triangle {
     }
 }
 
-impl Mul<i32> for Triangle {
+impl<T> Mul<T> for Triangle
+where
+    i32: Mul<T, Output = i32>,
+    T: Copy,
+{
     type Output = Self;
 
-    fn mul(self, rhs: i32) -> Self::Output {
+    fn mul(self, rhs: T) -> Self::Output {
         Triangle {
             x: self.x * rhs,
             y: self.y * rhs,
             z: self.z * rhs,
         }
+    }
+}
+
+impl Display for Triangle {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Tri-coordinate({}, {}, {})", self.x, self.y, self.z)
+    }
+}
+
+impl Display for TriOrientation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Tri-Orientation({})",
+            match self {
+                TriOrientation::Up => "Up",
+                TriOrientation::Down => "Down",
+            }
+        )
+    }
+}
+
+impl Display for TriDirection {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Tri-Direction({})",
+            match self {
+                TriDirection::Left => "Left",
+                TriDirection::Right => "Right",
+                TriDirection::Base => "Base",
+            }
+        )
     }
 }
 
@@ -568,20 +604,26 @@ mod tests {
 
     #[test]
     fn compute_z_vert() {
-        assert_eq!(triangle!(0, 0, 0).compute_z_vert(), triangle!(0, 0, 0));
-        assert_eq!(triangle!(1, 0, 0).compute_z_vert(), triangle!(1, 0, -1));
+        assert_eq!(
+            Triangle::new(0, 0, 0).compute_z_vert(),
+            Triangle::new(0, 0, 0)
+        );
+        assert_eq!(
+            Triangle::new(1, 0, 0).compute_z_vert(),
+            Triangle::new(1, 0, -1)
+        );
     }
 
     #[test]
     fn compute_z() {
         assert_eq!(
-            triangle!(1, 0, 0).compute_z(TriOrientation::Up),
-            triangle!(1, 0, 1)
+            Triangle::new(1, 0, 0).compute_z(TriOrientation::Up),
+            Triangle::new(1, 0, 1)
         );
 
         assert_eq!(
-            triangle!(0, 0, 0).compute_z(TriOrientation::Down),
-            triangle!(0, 0, 1)
+            Triangle::new(0, 0, 0).compute_z(TriOrientation::Down),
+            Triangle::new(0, 0, 1)
         );
     }
 
@@ -589,18 +631,27 @@ mod tests {
     fn to_cartesian() {
         // Interoperability
         assert_eq!(
-            Triangle::nearest_tri_face(triangle!(0, 1, 0).to_cartesian()),
-            triangle!(0, 1, 0)
+            Triangle::nearest_tri_face(
+                Triangle::new(0, 1, 0).to_cartesian(UNIT_LENGTH),
+                UNIT_LENGTH
+            ),
+            Triangle::new(0, 1, 0)
         );
 
         assert_eq!(
-            Triangle::nearest_tri_face(triangle!(0, 2, -1).to_cartesian()),
-            triangle!(0, 2, -1)
+            Triangle::nearest_tri_face(
+                Triangle::new(0, 2, -1).to_cartesian(UNIT_LENGTH),
+                UNIT_LENGTH
+            ),
+            Triangle::new(0, 2, -1)
         );
 
         assert_eq!(
-            Triangle::nearest_tri_face(triangle!(-1, 1, 2).to_cartesian()),
-            triangle!(-1, 1, 2)
+            Triangle::nearest_tri_face(
+                Triangle::new(-1, 1, 2).to_cartesian(UNIT_LENGTH),
+                UNIT_LENGTH
+            ),
+            Triangle::new(-1, 1, 2)
         );
 
         // Accuracy
@@ -611,56 +662,68 @@ mod tests {
                 assert_f64_near!(lhs.1, $tup.1);
             };
         }
-        tup_expand!(triangle!(0, 1, 0).to_cartesian(), (0.0, 0.5773502691896262));
         tup_expand!(
-            triangle!(0, 2, -1).to_cartesian(),
+            Triangle::new(0, 1, 0).to_cartesian(UNIT_LENGTH),
+            (0.0, 0.5773502691896262)
+        );
+        tup_expand!(
+            Triangle::new(0, 2, -1).to_cartesian(UNIT_LENGTH),
             (0.5, 1.4433756729740643)
         );
         tup_expand!(
-            triangle!(0, 0, 2).to_cartesian(),
+            Triangle::new(0, 0, 2).to_cartesian(UNIT_LENGTH),
             (-1.0, -0.5773502691896257)
         );
     }
 
     #[test]
     fn nearest_tri_face() {
-        assert_eq!(Triangle::nearest_tri_face((0.0, 0.0)), triangle!(0, 1, 0));
         assert_eq!(
-            Triangle::nearest_tri_face((-1.0, -1.0)),
-            triangle!(0, -1, 2)
+            Triangle::nearest_tri_face((0.0, 0.0), UNIT_LENGTH),
+            Triangle::new(0, 1, 0)
         );
-        assert_eq!(Triangle::nearest_tri_face((1.0, -1.0)), triangle!(2, -1, 0));
+        assert_eq!(
+            Triangle::nearest_tri_face((-1.0, -1.0), UNIT_LENGTH),
+            Triangle::new(0, -1, 2)
+        );
+        assert_eq!(
+            Triangle::nearest_tri_face((1.0, -1.0), UNIT_LENGTH),
+            Triangle::new(2, -1, 0)
+        );
     }
 
     #[test]
     fn rotate() {
-        assert_eq!(triangle!(0, 1, 0).rotate(2), triangle!(1, 0, 0));
-        assert_eq!(triangle!(0, 1, 0).rotate(3), triangle!(1, 0, 1));
-        assert_eq!(triangle!(0, 1, 0).rotate(4), triangle!(0, 0, 1));
-        assert_eq!(triangle!(0, 1, 0).rotate(5), triangle!(0, 1, 1));
-        assert_eq!(triangle!(0, 1, 0).rotate(6), triangle!(0, 1, 0).rotate(0));
+        assert_eq!(Triangle::new(0, 1, 0).rotate(2), Triangle::new(1, 0, 0));
+        assert_eq!(Triangle::new(0, 1, 0).rotate(3), Triangle::new(1, 0, 1));
+        assert_eq!(Triangle::new(0, 1, 0).rotate(4), Triangle::new(0, 0, 1));
+        assert_eq!(Triangle::new(0, 1, 0).rotate(5), Triangle::new(0, 1, 1));
+        assert_eq!(
+            Triangle::new(0, 1, 0).rotate(6),
+            Triangle::new(0, 1, 0).rotate(0)
+        );
     }
 
     #[test]
     fn rotate_about() {
         assert_eq!(
-            triangle!(1, 1, 0).rotate_about(triangle!(1, 0, -1), 1),
-            triangle!(1, 1, -1)
+            Triangle::new(1, 1, 0).rotate_about(Triangle::new(1, 0, -1), 1),
+            Triangle::new(1, 1, -1)
         );
     }
 
     #[test]
     fn reflect_x() {
-        assert_eq!(triangle!(1, 1, 0).reflect_x(), triangle!(0, 1, 1));
-        assert_eq!(triangle!(2, 1, -1).reflect_x(), triangle!(-1, 1, 2));
-        assert_eq!(triangle!(0, 1, 0).reflect_x(), triangle!(0, 1, 0));
+        assert_eq!(Triangle::new(1, 1, 0).reflect_x(), Triangle::new(0, 1, 1));
+        assert_eq!(Triangle::new(2, 1, -1).reflect_x(), Triangle::new(-1, 1, 2));
+        assert_eq!(Triangle::new(0, 1, 0).reflect_x(), Triangle::new(0, 1, 0));
     }
 
     #[test]
     fn reflect_y() {
-        assert_eq!(triangle!(1, 1, 0).reflect_y(), triangle!(1, 0, 0));
-        assert_eq!(triangle!(2, 1, -1).reflect_y(), triangle!(2, 0, -1));
-        assert_eq!(triangle!(0, 1, 0).reflect_y(), triangle!(1, 0, 1));
+        assert_eq!(Triangle::new(1, 1, 0).reflect_y(), Triangle::new(1, 0, 0));
+        assert_eq!(Triangle::new(2, 1, -1).reflect_y(), Triangle::new(2, 0, -1));
+        assert_eq!(Triangle::new(0, 1, 0).reflect_y(), Triangle::new(1, 0, 1));
     }
 
     #[test]
@@ -675,14 +738,14 @@ mod tests {
             };
         }
 
-        test!(triangle!(0, 1, 1), 0, triangle!(0, 1, 1));
-        test!(triangle!(1, 0, 0), 0, triangle!(0, 1, 1));
-        test!(triangle!(2, 0, 0), 0, triangle!(0, 1, 1));
-        test!(triangle!(2, 1, -1), 0, triangle!(0, 2, 0));
-        test!(triangle!(3, 0, -1), 0, triangle!(0, 1, 0));
-        test!(triangle!(1, 0, 0), 2, triangle!(2, 0, 0));
-        test!(triangle!(-1, 1, 2), 2, triangle!(2, -1, 0));
-        test!(triangle!(3, -1, -1), -1, triangle!(-1, 1, 1));
+        test!(Triangle::new(0, 1, 1), 0, Triangle::new(0, 1, 1));
+        test!(Triangle::new(1, 0, 0), 0, Triangle::new(0, 1, 1));
+        test!(Triangle::new(2, 0, 0), 0, Triangle::new(0, 1, 1));
+        test!(Triangle::new(2, 1, -1), 0, Triangle::new(0, 2, 0));
+        test!(Triangle::new(3, 0, -1), 0, Triangle::new(0, 1, 0));
+        test!(Triangle::new(1, 0, 0), 2, Triangle::new(2, 0, 0));
+        test!(Triangle::new(-1, 1, 2), 2, Triangle::new(2, -1, 0));
+        test!(Triangle::new(3, -1, -1), -1, Triangle::new(-1, 1, 1));
     }
 
     #[test]
@@ -697,12 +760,12 @@ mod tests {
             };
         }
 
-        test!(triangle!(0, 1, 0), 1, triangle!(0, 1, 0));
-        test!(triangle!(0, 2, 0), 0, triangle!(1, 0, 1));
-        test!(triangle!(1, 2, -1), -1, triangle!(2, -1, 0));
-        test!(triangle!(1, 0, 1), -1, triangle!(1, -1, 1));
-        test!(triangle!(0, 3, -1), -1, triangle!(2, -1, 1));
-        test!(triangle!(-1, 3, -1), -2, triangle!(2, -2, 2));
+        test!(Triangle::new(0, 1, 0), 1, Triangle::new(0, 1, 0));
+        test!(Triangle::new(0, 2, 0), 0, Triangle::new(1, 0, 1));
+        test!(Triangle::new(1, 2, -1), -1, Triangle::new(2, -1, 0));
+        test!(Triangle::new(1, 0, 1), -1, Triangle::new(1, -1, 1));
+        test!(Triangle::new(0, 3, -1), -1, Triangle::new(2, -1, 1));
+        test!(Triangle::new(-1, 3, -1), -2, Triangle::new(2, -2, 2));
     }
 
     #[test]
@@ -717,32 +780,71 @@ mod tests {
             };
         }
 
-        test!(triangle!(0, 1, 1), 1, triangle!(0, 1, 1));
-        test!(triangle!(0, 1, 1), 0, triangle!(0, 1, 0));
-        test!(triangle!(-1, 0, 2), 0, triangle!(0, 1, 0));
-        test!(triangle!(0, 1, 1), -1, triangle!(1, 2, -1));
-        test!(triangle!(-1, 0, 2), -1, triangle!(1, 2, -1));
-        test!(triangle!(2, 1, -1), 3, triangle!(0, -1, 3));
+        test!(Triangle::new(0, 1, 1), 1, Triangle::new(0, 1, 1));
+        test!(Triangle::new(0, 1, 1), 0, Triangle::new(0, 1, 0));
+        test!(Triangle::new(-1, 0, 2), 0, Triangle::new(0, 1, 0));
+        test!(Triangle::new(0, 1, 1), -1, Triangle::new(1, 2, -1));
+        test!(Triangle::new(-1, 0, 2), -1, Triangle::new(1, 2, -1));
+        test!(Triangle::new(2, 1, -1), 3, Triangle::new(0, -1, 3));
     }
 
     #[test]
     fn direction() {
-        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(1, 1, 0)), 0.0);
-        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(0, 1, 0)), 30.0);
-        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(0, 2, 0)), 60.0);
-        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(-1, 2, 0)), 90.0);
-        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(-1, 2, 1)), 120.0);
-        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(-1, 1, 1)), 150.0);
-        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(-1, 1, 2)), 180.0);
-        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(-1, 0, 2)), 210.0);
-        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(0, 0, 2)), 240.0);
-        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(0, 0, 1)), 270.0);
-        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(1, 0, 1)), 300.0);
-        assert_f64_near!(triangle!(0, 1, 1).direction(triangle!(1, 0, 0)), 330.0);
-
-        assert_f64_near!(triangle!(0, 0, 2).direction(triangle!(1, 1, -1)), 30.0);
         assert_f64_near!(
-            triangle!(0, 0, 2).direction(triangle!(2, 1, -1)),
+            Triangle::new(0, 1, 1).direction(Triangle::new(1, 1, 0)),
+            0.0
+        );
+        assert_f64_near!(
+            Triangle::new(0, 1, 1).direction(Triangle::new(0, 1, 0)),
+            30.0
+        );
+        assert_f64_near!(
+            Triangle::new(0, 1, 1).direction(Triangle::new(0, 2, 0)),
+            60.0
+        );
+        assert_f64_near!(
+            Triangle::new(0, 1, 1).direction(Triangle::new(-1, 2, 0)),
+            90.0
+        );
+        assert_f64_near!(
+            Triangle::new(0, 1, 1).direction(Triangle::new(-1, 2, 1)),
+            120.0
+        );
+        assert_f64_near!(
+            Triangle::new(0, 1, 1).direction(Triangle::new(-1, 1, 1)),
+            150.0
+        );
+        assert_f64_near!(
+            Triangle::new(0, 1, 1).direction(Triangle::new(-1, 1, 2)),
+            180.0
+        );
+        assert_f64_near!(
+            Triangle::new(0, 1, 1).direction(Triangle::new(-1, 0, 2)),
+            210.0
+        );
+        assert_f64_near!(
+            Triangle::new(0, 1, 1).direction(Triangle::new(0, 0, 2)),
+            240.0
+        );
+        assert_f64_near!(
+            Triangle::new(0, 1, 1).direction(Triangle::new(0, 0, 1)),
+            270.0
+        );
+        assert_f64_near!(
+            Triangle::new(0, 1, 1).direction(Triangle::new(1, 0, 1)),
+            300.0
+        );
+        assert_f64_near!(
+            Triangle::new(0, 1, 1).direction(Triangle::new(1, 0, 0)),
+            330.0
+        );
+
+        assert_f64_near!(
+            Triangle::new(0, 0, 2).direction(Triangle::new(1, 1, -1)),
+            30.0
+        );
+        assert_f64_near!(
+            Triangle::new(0, 0, 2).direction(Triangle::new(2, 1, -1)),
             19.106605350869103
         );
     }
@@ -750,23 +852,23 @@ mod tests {
     #[test]
     fn lerp() {
         assert_eq!(
-            triangle!(-1, 1, 1).lerp(triangle!(1, 1, 0), 0.51),
-            triangle!(0, 1, 0)
+            Triangle::new(-1, 1, 1).lerp(Triangle::new(1, 1, 0), 0.51),
+            Triangle::new(0, 1, 0)
         );
 
         assert_eq!(
-            triangle!(-1, 1, 1).lerp(triangle!(1, 1, 0), 1.0),
-            triangle!(1, 1, 0)
+            Triangle::new(-1, 1, 1).lerp(Triangle::new(1, 1, 0), 1.0),
+            Triangle::new(1, 1, 0)
         );
 
         assert_eq!(
-            triangle!(-1, 1, 1).lerp(triangle!(2, 0, -1), 0.63),
-            triangle!(1, 1, 0)
+            Triangle::new(-1, 1, 1).lerp(Triangle::new(2, 0, -1), 0.63),
+            Triangle::new(1, 1, 0)
         );
 
         assert_eq!(
-            triangle!(-1, 1, 1).lerp(triangle!(2, 0, -1), 0.3),
-            triangle!(0, 1, 1)
+            Triangle::new(-1, 1, 1).lerp(Triangle::new(2, 0, -1), 0.3),
+            Triangle::new(0, 1, 1)
         );
     }
 
@@ -795,8 +897,8 @@ mod tests {
         }
 
         test!(
-            triangle!(-1, 0, 2),
-            triangle!(2, 1, -1),
+            Triangle::new(-1, 0, 2),
+            Triangle::new(2, 1, -1),
             vec![
                 Triangle { x: -1, y: 0, z: 2 },
                 Triangle { x: 0, y: 0, z: 2 },
@@ -810,8 +912,8 @@ mod tests {
         );
 
         test!(
-            triangle!(1, -1, 2),
-            triangle!(-1, 2, 1),
+            Triangle::new(1, -1, 2),
+            Triangle::new(-1, 2, 1),
             vec![
                 Triangle { x: 1, y: -1, z: 2 },
                 Triangle { x: 0, y: -1, z: 2 },
@@ -824,8 +926,8 @@ mod tests {
         );
 
         test!(
-            triangle!(-1, 0, 3),
-            triangle!(2, 1, -1),
+            Triangle::new(-1, 0, 3),
+            Triangle::new(2, 1, -1),
             vec![
                 Triangle { x: -1, y: 0, z: 3 },
                 Triangle { x: -1, y: 0, z: 2 },
@@ -841,8 +943,8 @@ mod tests {
 
         // Along X axis
         test!(
-            triangle!(0, 0, 2),
-            triangle!(0, 2, 0),
+            Triangle::new(0, 0, 2),
+            Triangle::new(0, 2, 0),
             vec![
                 Triangle { x: 0, y: 0, z: 2 },
                 Triangle { x: 0, y: 0, z: 1 },
@@ -854,8 +956,8 @@ mod tests {
 
         // Along Y axis
         test!(
-            triangle!(-1, 0, 3),
-            triangle!(2, 0, 0),
+            Triangle::new(-1, 0, 3),
+            Triangle::new(2, 0, 0),
             vec![
                 Triangle { x: -1, y: 0, z: 3 },
                 Triangle { x: -1, y: 0, z: 2 },
@@ -869,8 +971,8 @@ mod tests {
 
         // Along Z axis
         test!(
-            triangle!(0, 1, 0),
-            triangle!(3, -1, 0),
+            Triangle::new(0, 1, 0),
+            Triangle::new(3, -1, 0),
             vec![
                 Triangle { x: 0, y: 1, z: 0 },
                 Triangle { x: 1, y: 1, z: 0 },
@@ -883,58 +985,58 @@ mod tests {
 
         // Self
         test!(
-            triangle!(0, 1, 1),
-            triangle!(0, 1, 1),
-            vec![triangle!(0, 1, 1)]
+            Triangle::new(0, 1, 1),
+            Triangle::new(0, 1, 1),
+            vec![Triangle::new(0, 1, 1)]
         );
     }
 
     #[test]
     fn range() {
         assert_eq!(
-            triangle!(0, 1, 0).range(1),
+            Triangle::new(0, 1, 0).range(1),
             vec![
-                triangle!(0, 1, 0),
-                triangle!(0, 1, 1),
-                triangle!(0, 2, 0),
-                triangle!(1, 1, 0),
+                Triangle::new(0, 1, 0),
+                Triangle::new(0, 1, 1),
+                Triangle::new(0, 2, 0),
+                Triangle::new(1, 1, 0),
             ]
         );
 
         assert_eq!(
-            triangle!(0, 0, 2).range(1),
+            Triangle::new(0, 0, 2).range(1),
             vec![
-                triangle!(-1, 0, 2),
-                triangle!(0, -1, 2),
-                triangle!(0, 0, 1),
-                triangle!(0, 0, 2),
+                Triangle::new(-1, 0, 2),
+                Triangle::new(0, -1, 2),
+                Triangle::new(0, 0, 1),
+                Triangle::new(0, 0, 2),
             ]
         );
 
         assert_eq!(
-            triangle!(1, 0, 0).range(2),
+            Triangle::new(1, 0, 0).range(2),
             vec![
-                triangle!(0, 0, 1),
-                triangle!(0, 1, 0),
-                triangle!(1, -1, 1),
-                triangle!(1, 0, 0),
-                triangle!(1, 0, 1),
-                triangle!(1, 1, -1),
-                triangle!(1, 1, 0),
-                triangle!(2, -1, 0),
-                triangle!(2, 0, -1),
-                triangle!(2, 0, 0),
+                Triangle::new(0, 0, 1),
+                Triangle::new(0, 1, 0),
+                Triangle::new(1, -1, 1),
+                Triangle::new(1, 0, 0),
+                Triangle::new(1, 0, 1),
+                Triangle::new(1, 1, -1),
+                Triangle::new(1, 1, 0),
+                Triangle::new(2, -1, 0),
+                Triangle::new(2, 0, -1),
+                Triangle::new(2, 0, 0),
             ]
         );
     }
 
     #[test]
     fn are_neighbors() {
-        assert!(triangle!(1, 0, 0).are_neighbors(&[
-            triangle!(1, 1, 0),
-            triangle!(2, 0, 0),
-            triangle!(1, 0, 1)
+        assert!(Triangle::new(1, 0, 0).are_neighbors(&[
+            Triangle::new(1, 1, 0),
+            Triangle::new(2, 0, 0),
+            Triangle::new(1, 0, 1)
         ]));
-        assert!(!triangle!(0, 0, 1).are_neighbors(&[triangle!(2, 0, 0)]));
+        assert!(!Triangle::new(0, 0, 1).are_neighbors(&[Triangle::new(2, 0, 0)]));
     }
 }
