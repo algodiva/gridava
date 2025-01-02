@@ -24,9 +24,10 @@ pub struct Triangle {
 /// - Down => base is facing upwards
 /// - Vert => vertex of a triangle
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Hash, Debug, Default)]
 pub enum TriOrientation {
     /// Upwards orientated triangle
+    #[default]
     Up,
     /// Downwards orientated triangle
     Down,
@@ -43,9 +44,10 @@ impl From<Triangle> for TriOrientation {
 
 /// Primary directions of travel on a triangular grid.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Hash, Debug, Default)]
 pub enum TriDirection {
     /// Left direction, correlates to negative x
+    #[default]
     Left,
     /// Right direction, correlates to positive x
     Right,
@@ -58,6 +60,7 @@ impl Triangle {
     pub const fn new(x: i32, y: i32, z: i32) -> Self {
         Self { x, y, z }
     }
+
     /// Compute the z coordinate for a vertex coordinate
     ///
     /// An important distinction is made for this type of coordinate since for
@@ -542,15 +545,37 @@ impl Sub for Triangle {
     }
 }
 
-impl Mul<i32> for Triangle {
+impl<T> Mul<T> for Triangle
+where
+    i32: Mul<T, Output = i32>,
+    T: Copy,
+{
     type Output = Self;
 
-    fn mul(self, rhs: i32) -> Self::Output {
+    fn mul(self, rhs: T) -> Self::Output {
         Triangle {
             x: self.x * rhs,
             y: self.y * rhs,
             z: self.z * rhs,
         }
+    }
+}
+
+impl Display for Triangle {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Tri-coordinate({}, {}, {})", self.x, self.y, self.z)
+    }
+}
+
+impl Display for TriOrientation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Tri-Orientation({})", self)
+    }
+}
+
+impl Display for TriDirection {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Tri-Direction({})", self)
     }
 }
 
