@@ -571,13 +571,28 @@ impl Display for Triangle {
 
 impl Display for TriOrientation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Tri-Orientation({})", self)
+        write!(
+            f,
+            "Tri-Orientation({})",
+            match self {
+                TriOrientation::Up => "Up",
+                TriOrientation::Down => "Down",
+            }
+        )
     }
 }
 
 impl Display for TriDirection {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Tri-Direction({})", self)
+        write!(
+            f,
+            "Tri-Direction({})",
+            match self {
+                TriDirection::Left => "Left",
+                TriDirection::Right => "Right",
+                TriDirection::Base => "Base",
+            }
+        )
     }
 }
 
