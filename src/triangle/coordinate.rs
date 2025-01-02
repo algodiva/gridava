@@ -55,6 +55,8 @@ pub enum TriDirection {
     Base,
 }
 
+const UNIT_LENGTH: u32 = 1;
+
 impl Triangle {
     /// Constructor for a Triangle.
     pub const fn new(x: i32, y: i32, z: i32) -> Self {
@@ -90,20 +92,20 @@ impl Triangle {
     }
 
     /// Converts a tri coordinate to cartesian coordinates.
-    pub fn to_cartesian(self) -> (f64, f64) {
+    pub fn to_cartesian(self, edge_length: u32) -> (f64, f64) {
         let (x, y, z) = (self.x as f64, self.y as f64, self.z as f64);
         (
-            0.5 * x + -0.5 * z,
-            -SQRT_3 / 6.0 * x + SQRT_3 / 3.0 * y - SQRT_3 / 6.0 * z,
+            (0.5 * x + -0.5 * z) * edge_length as f64,
+            (-SQRT_3 / 6.0 * x + SQRT_3 / 3.0 * y - SQRT_3 / 6.0 * z) * edge_length as f64,
         )
     }
 
     /// Converts from cartesian coordinates to the nearest tri face coordinate.
-    pub fn nearest_tri_face(cartesian: (f64, f64)) -> Self {
+    pub fn nearest_tri_face(cartesian: (f64, f64), edge_length: u32) -> Self {
         Triangle::new(
-            (1.0 * cartesian.0 - SQRT_3 / 3.0 * cartesian.1).ceil() as i32,
-            (SQRT_3 * 2.0 / 3.0 * cartesian.1).floor() as i32 + 1,
-            (-1.0 * cartesian.0 - SQRT_3 / 3.0 * cartesian.1).ceil() as i32,
+            ((1.0 * cartesian.0 - SQRT_3 / 3.0 * cartesian.1) / edge_length as f64).ceil() as i32,
+            ((SQRT_3 * 2.0 / 3.0 * cartesian.1) / edge_length as f64).floor() as i32 + 1,
+            ((-1.0 * cartesian.0 - SQRT_3 / 3.0 * cartesian.1) / edge_length as f64).ceil() as i32,
         )
     }
 
@@ -217,7 +219,7 @@ impl Triangle {
     #[cfg(feature = "std")]
     pub fn direction(self, b: Self) -> f64 {
         // direction to b from the pov of self
-        let (x, y) = (b - self).to_cartesian();
+        let (x, y) = (b - self).to_cartesian(UNIT_LENGTH);
         -y.atan2(-x).to_degrees() + 180.0
     }
 
@@ -238,13 +240,13 @@ impl Triangle {
         // Until a method to do it can be found for native tri coords,
         // we'll just convert to cartesian and interpolate there.
 
-        let (self_x, self_y) = self.to_cartesian();
-        let (b_x, b_y) = b.to_cartesian();
+        let (self_x, self_y) = self.to_cartesian(UNIT_LENGTH);
+        let (b_x, b_y) = b.to_cartesian(UNIT_LENGTH);
 
         let x = crate::core::misc::lerp(self_x, b_x, t);
         let y = crate::core::misc::lerp(self_y, b_y, t);
 
-        Self::nearest_tri_face((x, y))
+        Self::nearest_tri_face((x, y), UNIT_LENGTH)
     }
 
     /// Computes the intersection of two coordinates.
@@ -614,17 +616,26 @@ mod tests {
     fn to_cartesian() {
         // Interoperability
         assert_eq!(
-            Triangle::nearest_tri_face(Triangle::new(0, 1, 0).to_cartesian()),
+            Triangle::nearest_tri_face(
+                Triangle::new(0, 1, 0).to_cartesian(UNIT_LENGTH),
+                UNIT_LENGTH
+            ),
             Triangle::new(0, 1, 0)
         );
 
         assert_eq!(
-            Triangle::nearest_tri_face(Triangle::new(0, 2, -1).to_cartesian()),
+            Triangle::nearest_tri_face(
+                Triangle::new(0, 2, -1).to_cartesian(UNIT_LENGTH),
+                UNIT_LENGTH
+            ),
             Triangle::new(0, 2, -1)
         );
 
         assert_eq!(
-            Triangle::nearest_tri_face(Triangle::new(-1, 1, 2).to_cartesian()),
+            Triangle::nearest_tri_face(
+                Triangle::new(-1, 1, 2).to_cartesian(UNIT_LENGTH),
+                UNIT_LENGTH
+            ),
             Triangle::new(-1, 1, 2)
         );
 
@@ -637,15 +648,15 @@ mod tests {
             };
         }
         tup_expand!(
-            Triangle::new(0, 1, 0).to_cartesian(),
+            Triangle::new(0, 1, 0).to_cartesian(UNIT_LENGTH),
             (0.0, 0.5773502691896262)
         );
         tup_expand!(
-            Triangle::new(0, 2, -1).to_cartesian(),
+            Triangle::new(0, 2, -1).to_cartesian(UNIT_LENGTH),
             (0.5, 1.4433756729740643)
         );
         tup_expand!(
-            Triangle::new(0, 0, 2).to_cartesian(),
+            Triangle::new(0, 0, 2).to_cartesian(UNIT_LENGTH),
             (-1.0, -0.5773502691896257)
         );
     }
@@ -653,15 +664,15 @@ mod tests {
     #[test]
     fn nearest_tri_face() {
         assert_eq!(
-            Triangle::nearest_tri_face((0.0, 0.0)),
+            Triangle::nearest_tri_face((0.0, 0.0), UNIT_LENGTH),
             Triangle::new(0, 1, 0)
         );
         assert_eq!(
-            Triangle::nearest_tri_face((-1.0, -1.0)),
+            Triangle::nearest_tri_face((-1.0, -1.0), UNIT_LENGTH),
             Triangle::new(0, -1, 2)
         );
         assert_eq!(
-            Triangle::nearest_tri_face((1.0, -1.0)),
+            Triangle::nearest_tri_face((1.0, -1.0), UNIT_LENGTH),
             Triangle::new(2, -1, 0)
         );
     }
