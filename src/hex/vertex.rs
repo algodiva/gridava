@@ -3,7 +3,7 @@
 use crate::lib::*;
 
 use crate::edge;
-use crate::triangle::coordinate::{triangle, TriOrientation, Triangle};
+use crate::triangle::coordinate::{TriOrientation, Triangle};
 
 use super::{
     coordinate::{axial, Axial},
@@ -92,27 +92,15 @@ pub struct Vertex {
     pub coord: Triangle,
 }
 
-/// Helper macro to create [`Vertex`] structs.
-#[macro_export]
-macro_rules! vertex {
-    ($q:expr, $r:expr, $s:expr) => {{
-        use $crate::triangle::coordinate::{triangle, Triangle};
-        Vertex {
-            coord: triangle!($q, $r, $s),
-        }
-    }};
-}
-pub use vertex;
-
 impl From<VertexDirection> for Vertex {
     fn from(value: VertexDirection) -> Self {
         match value {
-            VertexDirection::Up => vertex!(1, 0, 1),
-            VertexDirection::UpRight => vertex!(1, 0, 0),
-            VertexDirection::DownRight => vertex!(1, 1, 0),
-            VertexDirection::Down => vertex!(0, 1, 0),
-            VertexDirection::DownLeft => vertex!(0, 1, 1),
-            VertexDirection::UpLeft => vertex!(0, 0, 1),
+            VertexDirection::Up => Vertex::new(1, 0, 1),
+            VertexDirection::UpRight => Vertex::new(1, 0, 0),
+            VertexDirection::DownRight => Vertex::new(1, 1, 0),
+            VertexDirection::Down => Vertex::new(0, 1, 0),
+            VertexDirection::DownLeft => Vertex::new(0, 1, 1),
+            VertexDirection::UpLeft => Vertex::new(0, 0, 1),
         }
     }
 }
@@ -121,17 +109,17 @@ impl From<(Axial, VertexDirection)> for Vertex {
     fn from(value: (Axial, VertexDirection)) -> Self {
         let vert_dir: Vertex = VertexDirection::into(value.1);
 
-        vertex!(
+        Vertex::new(
             value.0.q + vert_dir.coord.x,
             value.0.r + vert_dir.coord.y,
-            value.0.compute_s() + vert_dir.coord.z
+            value.0.compute_s() + vert_dir.coord.z,
         )
     }
 }
 
 impl From<Axial> for Vertex {
     fn from(value: Axial) -> Self {
-        vertex!(value.q, value.r, value.compute_s())
+        Vertex::new(value.q, value.r, value.compute_s())
     }
 }
 
@@ -142,6 +130,12 @@ impl From<Triangle> for Vertex {
 }
 
 impl Vertex {
+    ///Constructor for a vertex.
+    pub const fn new(q: i32, r: i32, s: i32) -> Vertex {
+        Vertex {
+            coord: Triangle::new(q, r, s),
+        }
+    }
     /// Get all 3 adjacent hexes to this vertex.
     ///
     /// # Example
@@ -174,10 +168,10 @@ impl Vertex {
     ///
     /// # Example
     /// ```
-    /// use gridava::hex::vertex::{vertex, Vertex};
+    /// use gridava::hex::vertex::Vertex;
     /// use gridava::triangle::coordinate::Triangle;
     ///
-    /// let tri = vertex!(0, 0, 0).into_inner();
+    /// let tri = Vertex::new(0, 0, 0).into_inner();
     /// ```
     pub fn into_inner(self) -> Triangle {
         self.coord
@@ -189,11 +183,11 @@ impl Vertex {
     ///
     /// # Example
     /// ```
-    /// use gridava::hex::vertex::{vertex, Vertex, VertexDirection, VertexSpin};
+    /// use gridava::hex::vertex::{Vertex, VertexDirection, VertexSpin};
     /// use gridava::hex::coordinate::{axial, Axial};
     ///
-    /// assert!(vertex!(0, 0, 0).try_to_axial().is_none());
-    /// assert_eq!(vertex!(1, 1, 0).try_to_axial().unwrap(), (axial!(0, 1), VertexSpin::Up));
+    /// assert!(Vertex::new(0, 0, 0).try_to_axial().is_none());
+    /// assert_eq!(Vertex::new(1, 1, 0).try_to_axial().unwrap(), (axial!(0, 1), VertexSpin::Up));
     /// ```
     pub fn try_to_axial(&self) -> Option<(Axial, VertexSpin)> {
         if self.coord.is_tri_face() {
@@ -282,42 +276,42 @@ mod tests {
 
     #[test]
     fn from_axial() {
-        assert_eq!(Vertex::from(axial!(0, 0)), vertex!(0, 0, 0));
+        assert_eq!(Vertex::from(axial!(0, 0)), Vertex::new(0, 0, 0));
 
-        assert_eq!(Vertex::from(axial!(1, 0)), vertex!(1, 0, -1));
-        assert_eq!(Vertex::from(axial!(2, 0)), vertex!(2, 0, -2));
-        assert_eq!(Vertex::from(axial!(3, 0)), vertex!(3, 0, -3));
+        assert_eq!(Vertex::from(axial!(1, 0)), Vertex::new(1, 0, -1));
+        assert_eq!(Vertex::from(axial!(2, 0)), Vertex::new(2, 0, -2));
+        assert_eq!(Vertex::from(axial!(3, 0)), Vertex::new(3, 0, -3));
 
-        assert_eq!(Vertex::from(axial!(0, 1)), vertex!(0, 1, -1));
-        assert_eq!(Vertex::from(axial!(0, 2)), vertex!(0, 2, -2));
-        assert_eq!(Vertex::from(axial!(0, 3)), vertex!(0, 3, -3));
+        assert_eq!(Vertex::from(axial!(0, 1)), Vertex::new(0, 1, -1));
+        assert_eq!(Vertex::from(axial!(0, 2)), Vertex::new(0, 2, -2));
+        assert_eq!(Vertex::from(axial!(0, 3)), Vertex::new(0, 3, -3));
 
-        assert_eq!(Vertex::from(axial!(1, 1)), vertex!(1, 1, -2));
-        assert_eq!(Vertex::from(axial!(1, 2)), vertex!(1, 2, -3));
-        assert_eq!(Vertex::from(axial!(2, 2)), vertex!(2, 2, -4));
+        assert_eq!(Vertex::from(axial!(1, 1)), Vertex::new(1, 1, -2));
+        assert_eq!(Vertex::from(axial!(1, 2)), Vertex::new(1, 2, -3));
+        assert_eq!(Vertex::from(axial!(2, 2)), Vertex::new(2, 2, -4));
     }
 
     #[test]
     fn into_inner() {
-        assert_eq!(vertex!(0, 0, 0).into_inner(), triangle!(0, 0, 0));
+        assert_eq!(Vertex::new(0, 0, 0).into_inner(), Triangle::new(0, 0, 0));
     }
 
     #[test]
     fn try_to_axial() {
         assert_eq!(
-            vertex!(1, 1, 0).try_to_axial().unwrap(),
+            Vertex::new(1, 1, 0).try_to_axial().unwrap(),
             (axial!(0, 1), VertexSpin::Up)
         );
         assert_eq!(
-            vertex!(1, 0, 0).try_to_axial().unwrap(),
+            Vertex::new(1, 0, 0).try_to_axial().unwrap(),
             (axial!(1, -1), VertexSpin::Down)
         );
         assert_eq!(
-            vertex!(1, 0, 1).try_to_axial().unwrap(),
+            Vertex::new(1, 0, 1).try_to_axial().unwrap(),
             (axial!(0, 0), VertexSpin::Up)
         );
         assert_eq!(
-            vertex!(0, 1, 0).try_to_axial().unwrap(),
+            Vertex::new(0, 1, 0).try_to_axial().unwrap(),
             (axial!(0, 0), VertexSpin::Down)
         );
     }
@@ -332,39 +326,51 @@ mod tests {
             [axial!(0, -1), axial!(0, 0), axial!(-1, 0)]
         );
         assert_eq!(
-            vertex!(1, 0, 1).adjacent_hexes().unwrap(),
+            Vertex::new(1, 0, 1).adjacent_hexes().unwrap(),
             [axial!(0, 0), axial!(0, -1), axial!(1, -1)]
         );
         assert_eq!(
-            vertex!(1, 1, -1).adjacent_hexes().unwrap(),
+            Vertex::new(1, 1, -1).adjacent_hexes().unwrap(),
             [axial!(1, 0), axial!(1, 1), axial!(0, 1)]
         );
 
-        assert!(vertex!(0, 0, 0).adjacent_hexes().is_none());
+        assert!(Vertex::new(0, 0, 0).adjacent_hexes().is_none());
     }
 
     #[test]
     fn adjacent_vertices() {
         assert_eq!(
-            vertex!(1, 0, 0).adjacent_vertices().unwrap(),
-            [vertex!(1, 0, 1), vertex!(2, 0, 0), vertex!(1, 1, 0)]
+            Vertex::new(1, 0, 0).adjacent_vertices().unwrap(),
+            [
+                Vertex::new(1, 0, 1),
+                Vertex::new(2, 0, 0),
+                Vertex::new(1, 1, 0)
+            ]
         );
         assert_eq!(
-            vertex!(0, 1, 1).adjacent_vertices().unwrap(),
-            [vertex!(-1, 1, 1), vertex!(0, 1, 0), vertex!(0, 0, 1)]
+            Vertex::new(0, 1, 1).adjacent_vertices().unwrap(),
+            [
+                Vertex::new(-1, 1, 1),
+                Vertex::new(0, 1, 0),
+                Vertex::new(0, 0, 1)
+            ]
         );
         assert_eq!(
-            vertex!(0, 2, 0).adjacent_vertices().unwrap(),
-            [vertex!(-1, 2, 0), vertex!(0, 2, -1), vertex!(0, 1, 0)]
+            Vertex::new(0, 2, 0).adjacent_vertices().unwrap(),
+            [
+                Vertex::new(-1, 2, 0),
+                Vertex::new(0, 2, -1),
+                Vertex::new(0, 1, 0)
+            ]
         );
 
-        assert!(vertex!(0, 0, 0).adjacent_vertices().is_none());
+        assert!(Vertex::new(0, 0, 0).adjacent_vertices().is_none());
     }
 
     #[test]
     fn adjacent_edges() {
         assert_eq!(
-            vertex!(1, 0, 1).adjacent_edges().unwrap(),
+            Vertex::new(1, 0, 1).adjacent_edges().unwrap(),
             [
                 edge!(1, -1, EdgeDirection::West),
                 edge!(0, 0, EdgeDirection::NorthEast),
@@ -373,7 +379,7 @@ mod tests {
         );
 
         assert_eq!(
-            vertex!(0, 1, 0).adjacent_edges().unwrap(),
+            Vertex::new(0, 1, 0).adjacent_edges().unwrap(),
             [
                 edge!(0, 1, EdgeDirection::NorthWest),
                 edge!(0, 1, EdgeDirection::West),
@@ -381,16 +387,16 @@ mod tests {
             ]
         );
 
-        assert!(vertex!(0, 0, 0).adjacent_edges().is_none());
+        assert!(Vertex::new(0, 0, 0).adjacent_edges().is_none());
     }
 
     #[test]
     fn distance() {
-        assert_eq!(vertex!(0, 0, 0).distance(vertex!(0, 0, 0)), 0);
+        assert_eq!(Vertex::new(0, 0, 0).distance(Vertex::new(0, 0, 0)), 0);
 
-        assert_eq!(vertex!(0, 0, 1).distance(vertex!(1, 0, 0)), 2);
+        assert_eq!(Vertex::new(0, 0, 1).distance(Vertex::new(1, 0, 0)), 2);
 
-        assert_eq!(vertex!(-1, 1, 2).distance(vertex!(0, 2, -1)), 5);
+        assert_eq!(Vertex::new(-1, 1, 2).distance(Vertex::new(0, 2, -1)), 5);
 
         assert_eq!(
             axial!(-1, 0)
@@ -455,16 +461,22 @@ mod tests {
 
     #[test]
     fn from_vd() {
-        assert_eq!(Vertex::from(VertexDirection::Up), vertex!(1, 0, 1));
-        assert_eq!(Vertex::from(VertexDirection::UpRight), vertex!(1, 0, 0));
-        assert_eq!(Vertex::from(VertexDirection::DownRight), vertex!(1, 1, 0));
-        assert_eq!(Vertex::from(VertexDirection::Down), vertex!(0, 1, 0));
-        assert_eq!(Vertex::from(VertexDirection::DownLeft), vertex!(0, 1, 1));
-        assert_eq!(Vertex::from(VertexDirection::UpLeft), vertex!(0, 0, 1));
+        assert_eq!(Vertex::from(VertexDirection::Up), Vertex::new(1, 0, 1));
+        assert_eq!(Vertex::from(VertexDirection::UpRight), Vertex::new(1, 0, 0));
+        assert_eq!(
+            Vertex::from(VertexDirection::DownRight),
+            Vertex::new(1, 1, 0)
+        );
+        assert_eq!(Vertex::from(VertexDirection::Down), Vertex::new(0, 1, 0));
+        assert_eq!(
+            Vertex::from(VertexDirection::DownLeft),
+            Vertex::new(0, 1, 1)
+        );
+        assert_eq!(Vertex::from(VertexDirection::UpLeft), Vertex::new(0, 0, 1));
     }
 
     #[test]
     fn default() {
-        assert_eq!(Vertex::default(), vertex!(0, 0, 0));
+        assert_eq!(Vertex::default(), Vertex::new(0, 0, 0));
     }
 }

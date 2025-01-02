@@ -290,10 +290,10 @@ impl Axial {
     /// # Example
     /// ```
     /// use gridava::hex::coordinate::{axial, Axial};
-    /// use gridava::hex::vertex::{vertex, Vertex, VertexDirection};
+    /// use gridava::hex::vertex::{Vertex, VertexDirection};
     ///
     /// let vert = axial!(0, 0).vertex(VertexDirection::Up);
-    /// assert_eq!(vert, vertex!(1, 0, 1));
+    /// assert_eq!(vert, Vertex::new(1, 0, 1));
     /// ```
     pub fn vertex(&self, vert_dir: VertexDirection) -> Vertex {
         (*self, vert_dir).into()
